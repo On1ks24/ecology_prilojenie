@@ -76,8 +76,8 @@ android {
     namespace "com.tempapp"
     defaultConfig {
         applicationId "com.tempapp"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        minSdkVersion 21
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
     }
