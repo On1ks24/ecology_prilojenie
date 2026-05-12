@@ -2,17 +2,21 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-// Создаем реальное подключение к БД
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'school_eco',
-  process.env.DB_USER || 'postgres',
-  process.env.DB_PASSWORD || '',
-  {
-    host: process.env.DB_HOST || 'localhost',
+let sequelize;
+
+// Если есть DATABASE_URL (Neon облако)
+if (process.env.DATABASE_URL) {
+  console.log('Подключение к облачной БД (Neon)');
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
     logging: console.log,
-    dialectOptions: { ssl: false }
-  }
-);
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false  // обязательно для Neon
+      }
+    }
+  });
+} 
 
 module.exports = sequelize;
