@@ -6,65 +6,117 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import styles from './styles';
+import axios from 'axios';
 
-const AuthScreen = () => {
-  const [activeTab, setActiveTab] = useState('login'); // 'login' или 'register'
-  const [selectedRole, setSelectedRole] = useState('director'); // 'director', 'teacher', 'student'
+const RegisterScreen = ({ navigation }) => {
+  const [selectedRole, setSelectedRole] = useState('user');
   const [fullName, setFullName] = useState('');
-  const [position, setPosition] = useState('');
-  const [schoolName, setSchoolName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [className, setClassName] = useState('');
-  const [showNotification, setShowNotification] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [schoolName, setSchoolName] = useState('');
+  const [schoolAddress, setSchoolAddress] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [teacherClass, setTeacherClass] = useState('');
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      Alert.alert('Ошибка', 'Пожалуйста, заполните email и пароль');
+  const handleRegister = async () => {
+    if (!fullName || !email || !password || !confirmPassword) {
+      Alert.alert('Ошибка', 'Пожалуйста, заполните все обязательные поля');
       return;
     }
 
-    // TODO: Здесь будет переход на главный экран в зависимости от роли
-    // Пример: if (selectedRole === 'director') navigation.navigate('DirectorHome')
-    Alert.alert('Успех', 'Вход выполнен');
-  };
+    if (password !== confirmPassword) {
+      Alert.alert('Ошибка', 'Пароли не совпадают');
+      return;
+    }
 
-  const handleRegister = () => {
-    if (selectedRole === 'director') {
-      if (!fullName || !position || !schoolName || !email || !phone || !password) {
-        Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
-        return;
+    if (selectedRole === 'director' && (!schoolName || !schoolAddress)) {
+      Alert.alert('Ошибка', 'Пожалуйста, заполните название и адрес школы');
+      return;
+    }
+
+    if ((selectedRole === 'teacher' || selectedRole === 'student') && !inviteCode) {
+      Alert.alert('Ошибка', 'Пожалуйста, введите пригласительный код');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      let response;
+      if (selectedRole === 'director') {
+        response = await axios.post('http://10.0.2.2:5000/api/auth/register-director', {
+          name: fullName,
+          email,
+          password,
+          schoolName,
+          schoolAddress
+        });
+      } else if (selectedRole === 'user') {
+        response = await axios.post('http://10.0.2.2:5000/api/auth/register', {
+          name: fullName,
+          email,
+          password
+        });
+      } else {
+        const payload = {
+          code: inviteCode,
+          name: fullName,
+          email,
+          password
+        };
+
+        if (selectedRole === 'teacher') {
+          payload.class_name = teacherClass;
+        }
+
+        response = await axios.post('http://10.0.2.2:5000/api/auth/register-invite', payload);
       }
-      setShowNotification(true);
-      // TODO: Отправить запрос на подтверждение, затем переход
-      // navigation.navigate('SchoolConfirmScreen')
-    } 
-    else if (selectedRole === 'teacher') {
-      if (!fullName || !email || !phone || !password || !className) {
-        Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
-        return;
-      }
-      // TODO: Регистрация учителя, затем переход
-      // navigation.navigate('TeacherHome')
-      Alert.alert('Успех', 'Регистрация учителя выполнена');
-    } 
-    else if (selectedRole === 'student') {
-      if (!fullName || !className || !email || !password) {
-        Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
-        return;
-      }
-      // TODO: Регистрация ученика, затем переход
-      // navigation.navigate('StudentHome')
-      Alert.alert('Успех', 'Регистрация ученика выполнена');
+
+      Alert.alert(
+        'Успех',
+        response.data.message || 'Регистрация успешна!'
+      );
+
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Full error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error request:', error.request);
+
+      const errorMessage = error.response?.data?.error ||
+                          error.response?.data?.message ||
+                          error.message ||
+                          'Произошла ошибка при регистрации';
+      Alert.alert('Ошибка', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const renderRoleSelector = () => (
     <View style={styles.roleContainer}>
+      <TouchableOpacity
+        style={[
+          styles.roleButton,
+          selectedRole === 'user' && styles.roleButtonActive,
+        ]}
+        onPress={() => setSelectedRole('user')}
+      >
+        <Text
+          style={[
+            styles.roleButtonText,
+            selectedRole === 'user' && styles.roleButtonTextActive,
+          ]}
+        >
+          Пользователь
+        </Text>
+      </TouchableOpacity>
+
       <TouchableOpacity
         style={[
           styles.roleButton,
@@ -78,7 +130,7 @@ const AuthScreen = () => {
             selectedRole === 'director' && styles.roleButtonTextActive,
           ]}
         >
-          Директор / Зам.
+          Директор
         </Text>
       </TouchableOpacity>
 
@@ -118,264 +170,141 @@ const AuthScreen = () => {
     </View>
   );
 
-  const renderLoginForm = () => (
-    <View>
-      {renderRoleSelector()}
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="example@school.ru"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Пароль</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Введите пароль"
-          secureTextEntry
-        />
-      </View>
-
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Войти</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderRegisterForm = () => (
-    <View>
-      {renderRoleSelector()}
-
-      {selectedRole === 'director' && (
-        <View>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>ФИО</Text>
-            <TextInput
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Введите ФИО"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Должность</Text>
-            <TextInput
-              style={styles.input}
-              value={position}
-              onChangeText={setPosition}
-              placeholder="Директор / Заместитель"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Название школы</Text>
-            <TextInput
-              style={styles.input}
-              value={schoolName}
-              onChangeText={setSchoolName}
-              placeholder="Введите название школы"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="example@school.ru"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Телефон</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+7 (XXX) XXX-XX-XX"
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Пароль</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Введите пароль"
-              secureTextEntry
-            />
-          </View>
-
-          <TouchableOpacity style={styles.button} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Отправить запрос на подтверждение</Text>
-          </TouchableOpacity>
-
-          {showNotification && (
-            <View style={styles.notification}>
-              <Text style={styles.notificationText}>
-                Ваш запрос отправлен. Мы свяжемся с вами для подтверждения в течение 24 часов.
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {selectedRole === 'teacher' && (
-        <View>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>ФИО</Text>
-            <TextInput
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Введите ФИО"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="example@school.ru"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Телефон</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+7 (XXX) XXX-XX-XX"
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Класс</Text>
-            <TextInput
-              style={styles.input}
-              value={className}
-              onChangeText={setClassName}
-              placeholder="Например: 11А"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Пароль</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Введите пароль"
-              secureTextEntry
-            />
-          </View>
-
-          <TouchableOpacity style={styles.button} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Зарегистрироваться</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {selectedRole === 'student' && (
-        <View>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>ФИО</Text>
-            <TextInput
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Введите ФИО"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Класс</Text>
-            <TextInput
-              style={styles.input}
-              value={className}
-              onChangeText={setClassName}
-              placeholder="Например: 11А"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="example@school.ru"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Пароль</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Введите пароль"
-              secureTextEntry
-            />
-          </View>
-
-          <TouchableOpacity style={styles.button} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Зарегистрироваться</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
-
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'login' && styles.tabActive]}
-            onPress={() => setActiveTab('login')}
-          >
-            <Text style={[styles.tabText, activeTab === 'login' && styles.tabTextActive]}>
-              Вход
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'register' && styles.tabActive]}
-            onPress={() => setActiveTab('register')}
-          >
-            <Text style={[styles.tabText, activeTab === 'register' && styles.tabTextActive]}>
-              Регистрация
-            </Text>
-          </TouchableOpacity>
+        <Text style={styles.title}>Регистрация</Text>
+        <Text style={styles.subGreeting}>Создайте новый аккаунт</Text>
+
+        {renderRoleSelector()}
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>ФИО *</Text>
+          <TextInput
+            style={styles.input}
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Введите ФИО"
+          />
         </View>
 
-        {activeTab === 'login' ? renderLoginForm() : renderRegisterForm()}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Email *</Text>
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="example@school.ru"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Пароль *</Text>
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Введите пароль"
+            secureTextEntry
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Подтверждение пароля *</Text>
+          <TextInput
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Повторите пароль"
+            secureTextEntry
+          />
+        </View>
+
+        {selectedRole === 'director' && (
+          <>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Название школы *</Text>
+              <TextInput
+                style={styles.input}
+                value={schoolName}
+                onChangeText={setSchoolName}
+                placeholder="Введите название школы"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Адрес школы *</Text>
+              <TextInput
+                style={styles.input}
+                value={schoolAddress}
+                onChangeText={setSchoolAddress}
+                placeholder="Введите адрес школы"
+              />
+            </View>
+
+            <View style={styles.infoContainer}>
+              <Text style={styles.infoText}>
+                После регистрации ваш аккаунт будет ожидать подтверждения.
+                Мы свяжемся с вами в течение 24 часов для проверки данных школы.
+              </Text>
+            </View>
+          </>
+        )}
+
+        {(selectedRole === 'teacher' || selectedRole === 'student') && (
+          <>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Пригласительный код *</Text>
+              <TextInput
+                style={styles.input}
+                value={inviteCode}
+                onChangeText={setInviteCode}
+                placeholder="Введите пригласительный код"
+              />
+            </View>
+
+            {selectedRole === 'teacher' && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Ваш класс *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={teacherClass}
+                  onChangeText={setTeacherClass}
+                  placeholder="Например: 7А, 8Б, 10В"
+                />
+                <Text style={[styles.infoText, { marginTop: 4, fontSize: 12 }]}>
+                  Введите название класса, который вы курируете
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleRegister}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>
+              {selectedRole === 'director' ? 'Отправить запрос на подтверждение' : 'Зарегистрироваться'}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.loginLinkContainer}>
+          <Text style={styles.registerLinkText}>Уже есть аккаунт? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.registerLinkButton}>Войти</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
 };
 
-export default AuthScreen;
+export default RegisterScreen;

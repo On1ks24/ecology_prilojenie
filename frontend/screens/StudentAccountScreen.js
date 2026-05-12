@@ -1,142 +1,266 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './styles';
 
-const StudentDashboardScreen = () => {
-  const [activeEvents, setActiveEvents] = useState([
-    { id: 1, name: 'Весенний субботник', date: '25 марта 2026', points: 50 },
-    { id: 2, name: 'Посадка деревьев', date: '1 апреля 2026', points: 30 },
-    { id: 3, name: 'Сбор макулатуры', date: '10 апреля 2026', points: 40 },
-  ]);
+const API_URL = 'http://10.0.2.2:5000/api';
 
-  const [achievements, setAchievements] = useState([
-    { id: 1, name: 'Эко-новичок', icon: '🌱', earned: true },
-    { id: 2, name: 'Защитник природы', icon: '🛡️', earned: false },
-    { id: 3, name: 'Мастер переработки', icon: '♻️', earned: true },
-    { id: 4, name: 'Зеленый герой', icon: '🌳', earned: false },
-  ]);
+const StudentDashboardScreen = ({ route, navigation }) => {
+  const { userId, name, role, schoolId, classId } = route.params || {};
 
-  const stats = {
-    points: 1250,
-    classRank: 3,
-    schoolRank: 15,
-    classTotal: 28,
-    schoolTotal: 120,
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [stats, setStats] = useState({
+    points: 0,
+    classRank: 1,
+    classTotal: 1,
+    schoolRank: 1,
+    schoolTotal: 1,
+  });
+  const [activeEvents, setActiveEvents] = useState([]);
+  const [finishedEvents, setFinishedEvents] = useState([]);
+
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadAllData().then(() => setRefreshing(false));
+  }, []);
+
+  const getToken = async () => {
+    return await AsyncStorage.getItem('accessToken');
   };
 
-  const handleJoinEvent = (eventId) => {
-    // TODO: Переход на экран с деталями мероприятия
-    // navigation.navigate('EventDetails', { eventId })
-    Alert.alert('Мероприятие', 'Функция присоединения к мероприятию будет доступна в следующей версии');
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      const token = await getToken();
+
+      const [statsRes, ratingRes, activeEventsRes, finishedEventsRes] = await Promise.all([
+        fetch(`${API_URL}/stats/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/stats/rating?school=${schoolId}&limit=100`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/events?school=true&status=active`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/events?school=true&status=finished`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      if (statsRes.ok) {
+        const s = await statsRes.json();
+        setStats(prev => ({ ...prev, points: s.totalPoints || 0 }));
+      }
+
+      if (ratingRes.ok) {
+        const schoolRating = await ratingRes.json();
+        const mySchoolRank = schoolRating.findIndex(r => (r.userId === userId || r.id === userId)) + 1;
+        setStats(prev => ({
+          ...prev,
+          schoolRank: mySchoolRank || schoolRating.length,
+          schoolTotal: schoolRating.length || 1,
+        }));
+
+        // Рейтинг в классе
+        const classRatingRes = await fetch(
+          `${API_URL}/stats/rating?class=${classId}&limit=100`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (classRatingRes.ok) {
+          const classRating = await classRatingRes.json();
+          const myClassRank = classRating.findIndex(r => (r.userId === userId || r.id === userId)) + 1;
+          setStats(prev => ({
+            ...prev,
+            classRank: myClassRank || classRating.length,
+            classTotal: classRating.length || 1,
+          }));
+        }
+      }
+
+      if (activeEventsRes.ok) {
+        const events = await activeEventsRes.json();
+        setActiveEvents(events.map(e => ({
+          id: e.id,
+          name: e.name,
+          date: new Date(e.date).toLocaleDateString('ru-RU'),
+          location: e.location,
+        })));
+      }
+
+      if (finishedEventsRes.ok) {
+        const events = await finishedEventsRes.json();
+        // Для каждого прошедшего получаем мои баллы и место
+        const finishedWithStats = await Promise.all(
+          events.map(async (e) => {
+            const detailsRes = await fetch(`${API_URL}/events/${e.id}/details`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (detailsRes.ok) {
+              const details = await detailsRes.json();
+              const myRating = details.rating.find(r => r.id === userId);
+              return {
+                id: e.id,
+                name: e.name,
+                date: new Date(e.date).toLocaleDateString('ru-RU'),
+                myScore: myRating?.totalScore || 0,
+                myRank: myRating?.rank || '-',
+                totalParticipants: details.stats.totalParticipants,
+              };
+            }
+            return { ...e, myScore: 0, myRank: '-', totalParticipants: 0 };
+          })
+        );
+        setFinishedEvents(finishedWithStats);
+      }
+
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить данные');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEcoTest = () => {
-    // TODO: Переход на экран с эко-тестом
-    // navigation.navigate('EcoTestScreen')
-    Alert.alert('Эко-тест', 'Функция прохождения теста будет доступна в следующей версии');
+  // Переходы
+  const handleClassRating = () => {
+    navigation.navigate('RatingScreen', { type: 'class', classId, schoolId, userId });
   };
 
-  const handleAchievements = () => {
-    // TODO: Переход на экран с достижениями
-    // navigation.navigate('AchievementsScreen')
-    Alert.alert('Достижения', 'Функция просмотра достижений будет доступна в следующей версии');
+  const handleSchoolRating = () => {
+    navigation.navigate('RatingScreen', { type: 'school', schoolId, userId });
   };
 
-  const earnedCount = achievements.filter(a => a.earned).length;
+  const handleActiveEventPress = (eventId) => {
+    navigation.navigate('EventDetails', { eventId, userRole: 'student', userId });
+  };
+
+  const handleViewAllActive = () => {
+    navigation.navigate('EventsList', { status: 'active', schoolId });
+  };
+
+  const handleViewAllFinished = () => {
+    navigation.navigate('EventsList', { status: 'finished', schoolId });
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
+    <ScrollView 
+      showsVerticalScrollIndicator={false} 
+      contentContainerStyle={styles.scrollContainer}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4CAF50']} />}
+    >
       <View style={styles.container}>
-        <Text style={styles.greeting}>Привет, Алексей!</Text>
+        <Text style={styles.greeting}>Привет, {name || 'Ученик'}!</Text>
         <Text style={styles.subGreeting}>Твой экологический вклад</Text>
 
+        {/* Статистика */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.points}</Text>
             <Text style={styles.statLabel}>Эко-баллов</Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-              {stats.classRank}/{stats.classTotal}
-            </Text>
+          <TouchableOpacity style={styles.statCard} onPress={handleClassRating}>
+            <Text style={styles.statValue}>{stats.classRank}/{stats.classTotal}</Text>
             <Text style={styles.statLabel}>Место в классе</Text>
-          </View>
+            <Text style={{ fontSize: 11, color: '#4CAF50', marginTop: 2 }}>→ Подробнее</Text>
+          </TouchableOpacity>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-              {stats.schoolRank}/{stats.schoolTotal}
-            </Text>
+          <TouchableOpacity style={styles.statCard} onPress={handleSchoolRating}>
+            <Text style={styles.statValue}>{stats.schoolRank}/{stats.schoolTotal}</Text>
             <Text style={styles.statLabel}>Место в школе</Text>
-          </View>
-        </View>
-
-        <View style={styles.progressContainer}>
-          <Text style={styles.sectionTitle}>До следующего уровня</Text>
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { width: '65%' }]} />
-          </View>
-          <Text style={styles.progressText}>Осталось 350 баллов до звания "Эко-защитник"</Text>
-        </View>
-
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionCard} onPress={() => handleJoinEvent(activeEvents[0]?.id)}>
-            <Text style={styles.actionIcon}>🌍</Text>
-            <Text style={styles.actionTitle}>Присоединиться к субботнику</Text>
-            <Text style={styles.actionDescription}>Активных мероприятий: {activeEvents.length}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={handleEcoTest}>
-            <Text style={styles.actionIcon}>📝</Text>
-            <Text style={styles.actionTitle}>Пройти эко-тест</Text>
-            <Text style={styles.actionDescription}>Проверь свои знания об экологии</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={handleAchievements}>
-            <Text style={styles.actionIcon}>🏆</Text>
-            <Text style={styles.actionTitle}>Мои достижения</Text>
-            <Text style={styles.actionDescription}>
-              Получено: {earnedCount}/{achievements.length}
-            </Text>
+            <Text style={{ fontSize: 11, color: '#4CAF50', marginTop: 2 }}>→ Подробнее</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Текущие мероприятия */}
         <View style={styles.eventsPreview}>
-          <Text style={styles.sectionTitle}>Ближайшие мероприятия</Text>
-          {activeEvents.slice(0, 2).map((event) => (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={styles.sectionTitle}>Текущие субботники</Text>
+            <TouchableOpacity onPress={handleViewAllActive}>
+              <Text style={{ color: '#4CAF50', fontSize: 14 }}>Все →</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {activeEvents.slice(0, 3).map((event) => (
             <TouchableOpacity
               key={event.id}
               style={styles.eventItem}
-              onPress={() => handleJoinEvent(event.id)}
+              onPress={() => handleActiveEventPress(event.id)}
             >
               <View style={styles.eventInfo}>
                 <Text style={styles.eventName}>{event.name}</Text>
                 <Text style={styles.eventDate}>{event.date}</Text>
+                <Text style={{ fontSize: 12, color: '#999' }}>📍 {event.location}</Text>
               </View>
               <View style={styles.eventPoints}>
-                <Text style={styles.pointsText}>+{event.points}</Text>
-                <Text style={styles.pointsLabel}>баллов</Text>
+                <Text style={{ fontSize: 20 }}>→</Text>
               </View>
             </TouchableOpacity>
           ))}
+
+          {activeEvents.length === 0 && (
+            <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
+              Нет активных мероприятий
+            </Text>
+          )}
         </View>
 
-        <View style={styles.achievementsPreview}>
-          <Text style={styles.sectionTitle}>Недавние достижения</Text>
-          <View style={styles.badgeContainer}>
-            {achievements.filter(a => a.earned).slice(0, 3).map((achievement) => (
-              <View key={achievement.id} style={styles.badge}>
-                <Text style={styles.badgeIcon}>{achievement.icon}</Text>
-                <Text style={styles.badgeName}>{achievement.name}</Text>
-              </View>
-            ))}
+        {/* Прошедшие мероприятия */}
+        <View style={[styles.eventsPreview, { marginTop: 16 }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={styles.sectionTitle}>Прошедшие субботники</Text>
+            <TouchableOpacity onPress={handleViewAllFinished}>
+              <Text style={{ color: '#4CAF50', fontSize: 14 }}>Все →</Text>
+            </TouchableOpacity>
           </View>
+          
+          {finishedEvents.slice(0, 3).map((event) => (
+            <View
+              key={event.id}
+              style={[styles.eventItem, { opacity: 0.7 }]}
+            >
+              <View style={styles.eventInfo}>
+                <Text style={[styles.eventName, { color: '#666' }]}>{event.name}</Text>
+                <Text style={styles.eventDate}>{event.date}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#4CAF50' }}>
+                  {event.myScore} баллов
+                </Text>
+                <Text style={{ fontSize: 12, color: '#999' }}>
+                  {event.myRank} место из {event.totalParticipants}
+                </Text>
+              </View>
+            </View>
+          ))}
+
+          {finishedEvents.length === 0 && (
+            <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
+              Нет завершённых мероприятий
+            </Text>
+          )}
         </View>
       </View>
     </ScrollView>

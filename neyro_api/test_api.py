@@ -1,6 +1,6 @@
 import requests
 
-url = 'http://localhost:5000/evaluate'
+url = 'http://localhost:8000/evaluate'
 
 # Укажите пути к фотографиям
 before_photo_path = 'istockphoto-2145395704-612x612.jpg'

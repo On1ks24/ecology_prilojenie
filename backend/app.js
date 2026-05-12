@@ -1,30 +1,36 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 const bodyParser = require('body-parser');
-
+const authRoutes = require('./routes/auth');
+const eventRoutes = require('./routes/events');
+const checkRoutes = require('./routes/checks');
+const schoolRoutes = require('./routes/schools');
+const inviteRoutes = require('./routes/invites');
+const classRoutes = require('./routes/classes');
+const statRoutes = require('./routes/stats');
+const usersRouter = require('./routes/users');
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Подключение к базе данных MongoDB
-mongoose.connect('mongodb://localhost:27017/ecology_app', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('Could not connect to MongoDB', err));
-
-// Базовый маршрут
+// Подключение маршрутов
+app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/checks', checkRoutes);
+app.use('/api/schools', schoolRoutes);
+app.use('/api/invites', inviteRoutes);
+app.use('/api/classes', classRoutes);
+app.use('/api/stats', statRoutes);
+app.use('/api/users', usersRouter);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Тестовый маршрут
 app.get('/', (req, res) => {
-  res.send('Hello from the backend!');
+  res.send('Ecology App API');
 });
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
