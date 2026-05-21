@@ -1,4 +1,3 @@
-// screens/ReviewRequestScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,6 +8,7 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './styles';
@@ -43,7 +43,6 @@ const ReviewRequestScreen = ({ route, navigation }) => {
 
       const data = await response.json();
       setRequest(data);
-      // Предзаполняем AI-оценку если есть
       if (data.score) {
         setCustomScore(String(data.score));
       }
@@ -143,7 +142,7 @@ const ReviewRequestScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.reviewLoadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
       </View>
     );
@@ -151,7 +150,7 @@ const ReviewRequestScreen = ({ route, navigation }) => {
 
   if (!request) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.reviewLoadingContainer}>
         <Text>Запрос не найден</Text>
       </View>
     );
@@ -161,150 +160,131 @@ const ReviewRequestScreen = ({ route, navigation }) => {
   const fullAfterUrl = getFullImageUrl(request.after_photo);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 8 }}>
-          Проверка работы
-        </Text>
-        <Text style={{ fontSize: 14, color: '#666' }}>
-          Ученик: {request.User?.name || 'Неизвестно'}
-        </Text>
-        <Text style={{ fontSize: 14, color: '#666' }}>
-          Мероприятие: {request.Event?.name || '—'}
-        </Text>
-        {request.score && (
-          <Text style={{ fontSize: 14, color: '#4CAF50', marginTop: 4 }}>
-            AI оценка: {request.score}/5
-          </Text>
-        )}
-      </View>
-
-      {/* Фото ДО */}
-      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#333' }}>
-          📸 Фото ДО уборки
-        </Text>
-        {fullBeforeUrl ? (
-          <Image
-            source={{ uri: fullBeforeUrl }}
-            style={{ width: '100%', height: 250, borderRadius: 12 }}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={{ height: 150, backgroundColor: '#f5f5f5', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: '#999' }}>Фото недоступно</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Фото ПОСЛЕ */}
-      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#333' }}>
-          📸 Фото ПОСЛЕ уборки
-        </Text>
-        {fullAfterUrl ? (
-          <Image
-            source={{ uri: fullAfterUrl }}
-            style={{ width: '100%', height: 250, borderRadius: 12 }}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={{ height: 150, backgroundColor: '#f5f5f5', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: '#999' }}>Фото недоступно</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Баллы */}
-      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#333' }}>
-          Начислить баллы (1-5)
-        </Text>
-        <TextInput
-          style={{
-            borderWidth: 1,
-            borderColor: '#ddd',
-            borderRadius: 12,
-            padding: 14,
-            fontSize: 18,
-            textAlign: 'center',
-            fontWeight: 'bold',
-          }}
-          value={customScore}
-          onChangeText={setCustomScore}
-          placeholder="1-5"
-          keyboardType="number-pad"
-          maxLength={1}
-        />
-        <Text style={{ fontSize: 12, color: '#999', marginTop: 8, textAlign: 'center' }}>
-          {request.score ? `AI предложил: ${request.score} баллов` : 'Введите оценку вручную'}
-        </Text>
-      </View>
-
-      {/* Комментарий */}
-      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#333' }}>
-          Комментарий (обязателен при отклонении)
-        </Text>
-        <TextInput
-          style={{
-            borderWidth: 1,
-            borderColor: '#ddd',
-            borderRadius: 12,
-            padding: 14,
-            fontSize: 14,
-            minHeight: 80,
-            textAlignVertical: 'top',
-          }}
-          value={comment}
-          onChangeText={setComment}
-          placeholder="Комментарий к проверке..."
-          multiline
-          numberOfLines={3}
-        />
-      </View>
-
-      {/* Кнопки */}
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            backgroundColor: '#4CAF50',
-            borderRadius: 12,
-            padding: 16,
-            alignItems: 'center',
-            opacity: isSubmitting ? 0.6 : 1,
-          }}
-          onPress={handleApprove}
-          disabled={isSubmitting}
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+      <View style={styles.reviewContainer}>
+        {/* Кнопка назад */}
+        <TouchableOpacity 
+          style={styles.reviewBackButton}
+          onPress={() => navigation.goBack()}
         >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-              ✓ Одобрить
+          <Text style={styles.reviewBackButtonText}>← Назад</Text>
+        </TouchableOpacity>
+
+        <ScrollView 
+          contentContainerStyle={styles.reviewScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Информация о запросе */}
+          <View style={styles.reviewInfoCard}>
+            <Text style={styles.reviewInfoTitle}>Проверка работы</Text>
+            <View style={styles.reviewInfoRow}>
+              <Text style={styles.reviewInfoLabel}>Ученик:</Text>
+              <Text style={styles.reviewInfoValue}>{request.User?.name || 'Неизвестно'}</Text>
+            </View>
+            <View style={styles.reviewInfoRow}>
+              <Text style={styles.reviewInfoLabel}>Мероприятие: </Text>
+              <Text style={styles.reviewInfoValue}>{request.Event?.name || '—'}</Text>
+            </View>
+            {request.score && (
+              <View style={styles.reviewAiRow}>
+                <Text style={styles.reviewAiLabel}>AI оценка:</Text>
+                <View style={styles.reviewAiScore}>
+                  <Text style={styles.reviewAiScoreText}>{request.score}/5</Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Фото ДО */}
+          <View style={styles.reviewPhotoCard}>
+            <Text style={styles.reviewPhotoTitle}>Фото ДО уборки</Text>
+            {fullBeforeUrl ? (
+              <Image
+                source={{ uri: fullBeforeUrl }}
+                style={styles.reviewPhotoImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.reviewPhotoPlaceholder}>
+                <Text style={styles.reviewPhotoPlaceholderText}>Фото недоступно</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Фото ПОСЛЕ */}
+          <View style={styles.reviewPhotoCard}>
+            <Text style={styles.reviewPhotoTitle}>Фото ПОСЛЕ уборки</Text>
+            {fullAfterUrl ? (
+              <Image
+                source={{ uri: fullAfterUrl }}
+                style={styles.reviewPhotoImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.reviewPhotoPlaceholder}>
+                <Text style={styles.reviewPhotoPlaceholderText}>Фото недоступно</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Начисление баллов */}
+          <View style={styles.reviewScoreCard}>
+            <Text style={styles.reviewScoreTitle}>Начислить баллы</Text>
+            <TextInput
+              style={styles.reviewScoreInput}
+              value={customScore}
+              onChangeText={setCustomScore}
+              placeholder="1-5"
+              placeholderTextColor="#aaa"
+              keyboardType="number-pad"
+              maxLength={1}
+            />
+            <Text style={styles.reviewScoreHint}>
+              {request.score ? `AI предложил: ${request.score} баллов` : 'Введите оценку вручную (1-5)'}
             </Text>
-          )}
-        </TouchableOpacity>
+          </View>
 
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            backgroundColor: '#f44336',
-            borderRadius: 12,
-            padding: 16,
-            alignItems: 'center',
-            opacity: isSubmitting ? 0.6 : 1,
-          }}
-          onPress={handleReject}
-          disabled={isSubmitting}
-        >
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-            ✗ Отклонить
-          </Text>
-        </TouchableOpacity>
+          {/* Комментарий */}
+          <View style={styles.reviewCommentCard}>
+            <Text style={styles.reviewCommentTitle}>Комментарий</Text>
+            <Text style={styles.reviewCommentHint}>* Обязателен при отклонении</Text>
+            <TextInput
+              style={styles.reviewCommentInput}
+              value={comment}
+              onChangeText={setComment}
+              placeholder="Напишите комментарий к проверке..."
+              placeholderTextColor="#aaa"
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+
+          {/* Кнопки действий */}
+          <View style={styles.reviewButtonsContainer}>
+            <TouchableOpacity
+              style={[styles.reviewApproveButton, isSubmitting && styles.reviewButtonDisabled]}
+              onPress={handleApprove}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.reviewApproveButtonText}>Одобрить</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.reviewRejectButton, isSubmitting && styles.reviewButtonDisabled]}
+              onPress={handleReject}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.reviewRejectButtonText}>Отклонить</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
-    </ScrollView>
+    </>
   );
 };
 

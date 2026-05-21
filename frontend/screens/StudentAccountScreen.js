@@ -7,9 +7,11 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  StatusBar,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import styles from './styles';
+import styles from './styles';  
 
 const API_URL = 'http://10.0.2.2:5000/api';
 
@@ -39,6 +41,11 @@ const StudentDashboardScreen = ({ route, navigation }) => {
 
   const getToken = async () => {
     return await AsyncStorage.getItem('accessToken');
+  };
+
+  const getInitialLetter = () => {
+    if (!name) return 'У';
+    return name.charAt(0).toUpperCase();
   };
 
   const loadAllData = async () => {
@@ -75,7 +82,6 @@ const StudentDashboardScreen = ({ route, navigation }) => {
           schoolTotal: schoolRating.length || 1,
         }));
 
-        // Рейтинг в классе
         const classRatingRes = await fetch(
           `${API_URL}/stats/rating?class=${classId}&limit=100`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -103,7 +109,6 @@ const StudentDashboardScreen = ({ route, navigation }) => {
 
       if (finishedEventsRes.ok) {
         const events = await finishedEventsRes.json();
-        // Для каждого прошедшего получаем мои баллы и место
         const finishedWithStats = await Promise.all(
           events.map(async (e) => {
             const detailsRes = await fetch(`${API_URL}/events/${e.id}/details`, {
@@ -135,7 +140,6 @@ const StudentDashboardScreen = ({ route, navigation }) => {
     }
   };
 
-  // Переходы
   const handleClassRating = () => {
     navigation.navigate('RatingScreen', { type: 'class', classId, schoolId, userId });
   };
@@ -158,112 +162,130 @@ const StudentDashboardScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={styles.studentLoadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
       </View>
     );
   }
 
   return (
-    <ScrollView 
-      showsVerticalScrollIndicator={false} 
-      contentContainerStyle={styles.scrollContainer}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4CAF50']} />}
-    >
-      <View style={styles.container}>
-        <Text style={styles.greeting}>Привет, {name || 'Ученик'}!</Text>
-        <Text style={styles.subGreeting}>Твой экологический вклад</Text>
-
-        {/* Статистика */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.points}</Text>
-            <Text style={styles.statLabel}>Эко-баллов</Text>
-          </View>
-
-          <TouchableOpacity style={styles.statCard} onPress={handleClassRating}>
-            <Text style={styles.statValue}>{stats.classRank}/{stats.classTotal}</Text>
-            <Text style={styles.statLabel}>Место в классе</Text>
-            <Text style={{ fontSize: 11, color: '#4CAF50', marginTop: 2 }}>→ Подробнее</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.statCard} onPress={handleSchoolRating}>
-            <Text style={styles.statValue}>{stats.schoolRank}/{stats.schoolTotal}</Text>
-            <Text style={styles.statLabel}>Место в школе</Text>
-            <Text style={{ fontSize: 11, color: '#4CAF50', marginTop: 2 }}>→ Подробнее</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Текущие мероприятия */}
-        <View style={styles.eventsPreview}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={styles.sectionTitle}>Текущие субботники</Text>
-            <TouchableOpacity onPress={handleViewAllActive}>
-              <Text style={{ color: '#4CAF50', fontSize: 14 }}>Все →</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {activeEvents.slice(0, 3).map((event) => (
-            <TouchableOpacity
-              key={event.id}
-              style={styles.eventItem}
-              onPress={() => handleActiveEventPress(event.id)}
-            >
-              <View style={styles.eventInfo}>
-                <Text style={styles.eventName}>{event.name}</Text>
-                <Text style={styles.eventDate}>{event.date}</Text>
-                <Text style={{ fontSize: 12, color: '#999' }}>📍 {event.location}</Text>
-              </View>
-              <View style={styles.eventPoints}>
-                <Text style={{ fontSize: 20 }}>→</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-
-          {activeEvents.length === 0 && (
-            <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
-              Нет активных мероприятий
-            </Text>
-          )}
-        </View>
-
-        {/* Прошедшие мероприятия */}
-        <View style={[styles.eventsPreview, { marginTop: 16 }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={styles.sectionTitle}>Прошедшие субботники</Text>
-            <TouchableOpacity onPress={handleViewAllFinished}>
-              <Text style={{ color: '#4CAF50', fontSize: 14 }}>Все →</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {finishedEvents.slice(0, 3).map((event) => (
-            <View
-              key={event.id}
-              style={[styles.eventItem, { opacity: 0.7 }]}
-            >
-              <View style={styles.eventInfo}>
-                <Text style={[styles.eventName, { color: '#666' }]}>{event.name}</Text>
-                <Text style={styles.eventDate}>{event.date}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#4CAF50' }}>
-                  {event.myScore} баллов
-                </Text>
-                <Text style={{ fontSize: 12, color: '#999' }}>
-                  {event.myRank} место из {event.totalParticipants}
-                </Text>
-              </View>
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#000000" translucent />
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.studentScrollContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4CAF50']} />}
+      >
+        <View style={styles.studentContainer}>
+          <View style={styles.studentHeader}>
+            <View style={styles.studentAvatar}>
+              <Image
+                source={require('../assets/images/fon8.png')}
+                style={styles.studentAvatarImage}
+                resizeMode="cover"
+              />
             </View>
-          ))}
+            <Text style={styles.studentName}>{name || 'Ученик'}</Text>
+            <Text style={styles.studentRole}>Ученик</Text>
 
-          {finishedEvents.length === 0 && (
-            <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
-              Нет завершённых мероприятий
-            </Text>
-          )}
+            <View style={styles.studentStatsRow}>
+              <View style={styles.studentStatButton}>
+                <Text style={styles.studentStatButtonValue}>{stats.points}</Text>
+                <Text style={styles.studentStatButtonLabel}>эко-баллов</Text>
+              </View>
+
+              <TouchableOpacity style={styles.studentStatButton} onPress={handleClassRating}>
+                <Text style={styles.studentStatButtonValue}>{stats.classRank}/{stats.classTotal}</Text>
+                <Text style={styles.studentStatButtonLabel}>место в классе</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.studentStatButton} onPress={handleSchoolRating}>
+                <Text style={styles.studentStatButtonValue}>{stats.schoolRank}/{stats.schoolTotal}</Text>
+                <Text style={styles.studentStatButtonLabel}>место в школе</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.studentActionsContainer}>
+            <TouchableOpacity style={styles.studentActionCard} onPress={handleViewAllActive}>
+              <View style={styles.studentActionContent}>
+                <Text style={styles.studentActionTitle}>Текущие субботники</Text>
+                <Text style={styles.studentActionDescription}>Участвуйте в мероприятиях</Text>
+              </View>
+              <Text style={styles.studentActionArrow}>→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.studentActionCard} onPress={handleClassRating}>
+              <View style={styles.studentActionContent}>
+                <Text style={styles.studentActionTitle}>Рейтинг в классе</Text>
+                <Text style={styles.studentActionDescription}>Сравните свои результаты с одноклассниками</Text>
+              </View>
+              <Text style={styles.studentActionArrow}>→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.studentActionCard} onPress={handleSchoolRating}>
+              <View style={styles.studentActionContent}>
+                <Text style={styles.studentActionTitle}>Рейтинг в школе</Text>
+                <Text style={styles.studentActionDescription}>Сравните свои результаты с шольными друзьями</Text>
+              </View>
+              <Text style={styles.studentActionArrow}>→</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.studentMyEvents}>
+            <Text style={styles.studentMyEventsTitle}>Мои мероприятия</Text>
+            
+            {activeEvents.slice(0, 3).map((event) => (
+              <TouchableOpacity
+                key={event.id}
+                style={styles.studentMyEventItem}
+                onPress={() => handleActiveEventPress(event.id)}
+              >
+                <View style={styles.studentMyEventInfo}>
+                  <Text style={styles.studentMyEventName}>{event.name}</Text>
+                  <Text style={styles.studentMyEventDate}>
+                    {event.date} • {event.location}
+                  </Text>
+                </View>
+                <View style={styles.studentMyEventStatus}>
+                  <Text style={styles.studentMyEventStatusText}>Активно</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            {activeEvents.length === 0 && (
+              <View style={styles.studentEmptyEvents}>
+                <Text style={styles.studentEmptyEventsText}>Нет активных мероприятий</Text>
+              </View>
+            )}
+
+            {finishedEvents.length > 0 && finishedEvents.slice(0, 2).map((event) => (
+              <View key={event.id} style={[styles.studentMyEventItem, styles.studentMyEventItemPast]}>
+                <View style={styles.studentMyEventInfo}>
+                  <Text style={[styles.studentMyEventName, styles.studentMyEventNamePast]}>{event.name}</Text>
+                  <Text style={styles.studentMyEventDate}>{event.date}</Text>
+                  <Text style={styles.studentMyEventScore}>
+                    {event.myScore} баллов • {event.myRank} место из {event.totalParticipants}
+                  </Text>
+                </View>
+                <View style={[styles.studentMyEventStatus, styles.studentMyEventStatusPast]}>
+                  <Text style={[styles.studentMyEventStatusText, styles.studentMyEventStatusTextPast]}>Завершено</Text>
+                </View>
+                
+              </View>
+              
+            ))}
+            <View style={styles.studentFooterImage}>
+                  <Image
+                    source={require('../assets/images/uchenik2.png')}
+                    style={styles.studentFooterImageStyle}
+                    resizeMode="contain"
+                  />
+                </View>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 };
 

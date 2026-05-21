@@ -1,4 +1,3 @@
-// screens/UserAccountScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -9,6 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  StatusBar,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './styles';
@@ -20,7 +21,7 @@ const UserAccountScreen = ({ route, navigation }) => {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('organizer'); // 'organizer' | 'participant'
+  const [activeTab, setActiveTab] = useState('organizer');
   const [myEvents, setMyEvents] = useState([]);
   const [joinedEvents, setJoinedEvents] = useState([]);
   const [joinCode, setJoinCode] = useState('');
@@ -38,12 +39,16 @@ const UserAccountScreen = ({ route, navigation }) => {
     return await AsyncStorage.getItem('accessToken');
   };
 
+  const getInitialLetter = () => {
+    if (!name) return 'П';
+    return name.charAt(0).toUpperCase();
+  };
+
   const loadAllData = async () => {
     try {
       setLoading(true);
       const token = await getToken();
 
-      // Мои мероприятия (где организатор)
       const myEventsRes = await fetch(`${API_URL}/events?my_events=true`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -55,11 +60,10 @@ const UserAccountScreen = ({ route, navigation }) => {
           date: new Date(e.date).toLocaleDateString('ru-RU'),
           location: e.location,
           status: e.end_date ? 'finished' : 'active',
-          participants: 0, // можно доработать
+          participants: 0,
         })));
       }
 
-      // Мероприятия где участник
       const joinedRes = await fetch(`${API_URL}/events/my-joined`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -81,12 +85,10 @@ const UserAccountScreen = ({ route, navigation }) => {
     }
   };
 
-  // Создать мероприятие
   const handleCreateEvent = () => {
     navigation.navigate('CreateEvent', { userRole: 'user' });
   };
 
-  // Присоединиться к мероприятию по ID
   const handleJoinEvent = async () => {
     if (!joinCode.trim()) {
       Alert.alert('Ошибка', 'Введите ID мероприятия');
@@ -114,7 +116,6 @@ const UserAccountScreen = ({ route, navigation }) => {
     }
   };
 
-  // Перейти к мероприятию
   const handleEventPress = (eventId, isOrganizer) => {
     if (isOrganizer) {
       navigation.navigate('EventDetails', { eventId, userRole: 'teacher', userId });
@@ -123,7 +124,6 @@ const UserAccountScreen = ({ route, navigation }) => {
     }
   };
 
-  // Отправить фото уборки
   const handleSendPhotos = (eventId, eventName, eventDate, eventLocation) => {
     navigation.navigate('CleanSending', {
       eventId,
@@ -135,173 +135,168 @@ const UserAccountScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={styles.userLoadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
       </View>
     );
   }
 
   return (
-    <ScrollView 
-      showsVerticalScrollIndicator={false} 
-      contentContainerStyle={styles.scrollContainer}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4CAF50']} />}
-    >
-      <View style={styles.container}>
-        <Text style={styles.greeting}>Привет, {name || 'Пользователь'}!</Text>
-        <Text style={styles.subGreeting}>Экологический активист</Text>
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.userScrollContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4CAF50']} />}
+      >
+        <View style={styles.userContainer}>
+          
+          <View style={styles.userHeader}>
+            <View style={styles.studentAvatar}>
+              <Image
+                source={require('../assets/images/fon10.png')}
+                style={styles.studentAvatarImage}
+                resizeMode="cover"
+              />
+            </View>
+            <Text style={styles.studentName}>Привет, {name || 'Пользователь'}!</Text>
+            <Text style={styles.studentRole}>Экологический активист</Text>
+          </View>
 
-        {/* Присоединиться по ID */}
-        <View style={{ backgroundColor: '#fff', borderRadius: 15, padding: 16, marginBottom: 20 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: '#333' }}>
-            🔗 Присоединиться к мероприятию
-          </Text>
-          <TextInput
-            style={{
-              borderWidth: 1,
-              borderColor: '#ddd',
-              borderRadius: 10,
-              padding: 12,
-              fontSize: 16,
-              marginBottom: 12,
-            }}
-            value={joinCode}
-            onChangeText={setJoinCode}
-            placeholder="Введите ID мероприятия"
-            keyboardType="number-pad"
-          />
-          <TouchableOpacity
-            style={{ backgroundColor: '#2196F3', borderRadius: 10, padding: 14, alignItems: 'center' }}
-            onPress={handleJoinEvent}
-          >
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Присоединиться</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Табы */}
-        <View style={{ flexDirection: 'row', marginBottom: 20, backgroundColor: '#fff', borderRadius: 10, padding: 4 }}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'organizer' && styles.tabActive]}
-            onPress={() => setActiveTab('organizer')}
-          >
-            <Text style={[styles.tabText, activeTab === 'organizer' && styles.tabTextActive]}>
-              Организатор ({myEvents.length})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'participant' && styles.tabActive]}
-            onPress={() => setActiveTab('participant')}
-          >
-            <Text style={[styles.tabText, activeTab === 'participant' && styles.tabTextActive]}>
-              Участник ({joinedEvents.length})
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Вкладка Организатор */}
-        {activeTab === 'organizer' && (
-          <>
-            <TouchableOpacity
-              style={styles.teacherActionCard}
-              onPress={handleCreateEvent}
-            >
-              <Text style={styles.teacherActionIcon}>➕</Text>
-              <View style={styles.teacherActionContent}>
-                <Text style={styles.teacherActionTitle}>Создать мероприятие</Text>
-                <Text style={styles.teacherActionDescription}>Организовать новый субботник</Text>
-              </View>
+          {/* Присоединиться к мероприятию */}
+          <View style={styles.userJoinCard}>
+            <Text style={styles.userJoinTitle}>Присоединиться к мероприятию</Text>
+            <TextInput
+              style={styles.userJoinInput}
+              value={joinCode}
+              onChangeText={setJoinCode}
+              placeholder="Введите ID мероприятия"
+              placeholderTextColor="#aaa"
+              keyboardType="number-pad"
+            />
+            <TouchableOpacity style={styles.userJoinButton} onPress={handleJoinEvent}>
+              <Text style={styles.userJoinButtonText}>Присоединиться</Text>
             </TouchableOpacity>
+          </View>
 
-            <View style={styles.eventsPreview}>
-              <Text style={styles.sectionTitle}>Мои мероприятия</Text>
-              {myEvents.length === 0 ? (
-                <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
-                  Вы ещё не создавали мероприятий
-                </Text>
+          {/* Табы */}
+          <View style={styles.userTabContainer}>
+            <TouchableOpacity
+              style={[styles.userTab, activeTab === 'organizer' && styles.userTabActive]}
+              onPress={() => setActiveTab('organizer')}
+            >
+              <Text style={[styles.userTabText, activeTab === 'organizer' && styles.userTabTextActive]}>
+                Организатор ({myEvents.length})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.userTab, activeTab === 'participant' && styles.userTabActive]}
+              onPress={() => setActiveTab('participant')}
+            >
+              <Text style={[styles.userTabText, activeTab === 'participant' && styles.userTabTextActive]}>
+                Участник ({joinedEvents.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Вкладка Организатор */}
+          {activeTab === 'organizer' && (
+            <>
+              <TouchableOpacity style={styles.userActionCard} onPress={handleCreateEvent}>
+                <View style={styles.userActionContent}>
+                  <Text style={styles.userActionTitle}>Создать мероприятие</Text>
+                  <Text style={styles.userActionDescription}>Организовать новый субботник</Text>
+                </View>
+                <Text style={styles.userActionArrow}>→</Text>
+              </TouchableOpacity>
+
+              <View style={styles.userEventsList}>
+                <Text style={styles.userSectionTitle}>Мои мероприятия</Text>
+                {myEvents.length === 0 ? (
+                  <View style={styles.userEmptyState}>
+                    <Text style={styles.userEmptyText}>Вы ещё не создавали мероприятий</Text>
+                  </View>
+                ) : (
+                  myEvents.map((event) => (
+                    <TouchableOpacity
+                      key={event.id}
+                      style={styles.userEventItem}
+                      onPress={() => handleEventPress(event.id, true)}
+                    >
+                      <View style={styles.userEventInfo}>
+                        <Text style={styles.userEventName}>{event.name}</Text>
+                        <Text style={styles.userEventDate}>{event.date}</Text>
+                        <Text style={styles.userEventLocation}>{event.location}</Text>
+                      </View>
+                      <View style={[
+                        styles.userEventStatus,
+                        event.status === 'active' ? styles.userEventStatusActive : styles.userEventStatusFinished
+                      ]}>
+                        <Text style={[
+                          styles.userEventStatusText,
+                          event.status === 'active' ? styles.userEventStatusTextActive : styles.userEventStatusTextFinished
+                        ]}>
+                          {event.status === 'active' ? 'Активно' : 'Завершено'}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </View>
+            </>
+          )}
+
+          {/* Вкладка Участник */}
+          {activeTab === 'participant' && (
+            <View style={styles.userEventsList}>
+              <Text style={styles.userSectionTitle}>Мероприятия где я участвую</Text>
+              {joinedEvents.length === 0 ? (
+                <View style={styles.userEmptyState}>
+                  <Text style={styles.userEmptyText}>Вы не участвуете ни в одном мероприятии</Text>
+                </View>
               ) : (
-                myEvents.map((event) => (
+                joinedEvents.map((event) => (
                   <TouchableOpacity
                     key={event.id}
-                    style={styles.eventItem}
-                    onPress={() => handleEventPress(event.id, true)}
+                    style={styles.userEventItem}
+                    onPress={() => navigation.navigate('EventDetails', {
+                      eventId: event.id,
+                      userRole: 'user',
+                      userId
+                    })}
                   >
-                    <View style={styles.eventInfo}>
-                      <Text style={styles.eventName}>{event.name}</Text>
-                      <Text style={styles.eventDate}>{event.date}</Text>
-                      <Text style={{ fontSize: 12, color: '#999' }}>📍 {event.location}</Text>
+                    <View style={styles.userEventInfo}>
+                      <Text style={styles.userEventName}>{event.name}</Text>
+                      <Text style={styles.userEventDate}>{event.date}</Text>
+                      <Text style={styles.userEventLocation}>{event.location}</Text>
                     </View>
-                    <View style={[
-                      { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-                      event.status === 'active' ? { backgroundColor: '#E8F5E9' } : { backgroundColor: '#E3F2FD' }
-                    ]}>
-                      <Text style={{ 
-                        fontSize: 12, 
-                        color: event.status === 'active' ? '#2E7D32' : '#1565C0',
-                        fontWeight: '600'
-                      }}>
-                        {event.status === 'active' ? 'Активно' : 'Завершено'}
-                      </Text>
+                    <View style={styles.userEventParticipantStats}>
+                      <Text style={styles.userEventScore}>{event.myScore} баллов</Text>
+                      <TouchableOpacity
+                        style={styles.userPhotoButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleSendPhotos(event.id, event.name, event.date, event.location);
+                        }}
+                      >
+                        <Text style={styles.userPhotoButtonText}>Отправить фото</Text>
+                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 ))
               )}
             </View>
-          </>
-        )}
-
-        {/* Вкладка Участник */}
-        {activeTab === 'participant' && (
-        <View style={styles.eventsPreview}>
-          <Text style={styles.sectionTitle}>Мероприятия где я участвую</Text>
-          {joinedEvents.length === 0 ? (
-            <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
-              Вы не участвуете ни в одном мероприятии
-            </Text>
-          ) : (
-            joinedEvents.map((event) => (
-              <TouchableOpacity
-                key={event.id}
-                style={styles.eventItem}
-                onPress={() => navigation.navigate('EventDetails', {
-                  eventId: event.id,
-                  userRole: 'user',
-                  userId
-                })}
-              >
-                <View style={styles.eventInfo}>
-                  <Text style={styles.eventName}>{event.name}</Text>
-                  <Text style={styles.eventDate}>{event.date}</Text>
-                  <Text style={{ fontSize: 12, color: '#999' }}>📍 {event.location}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#4CAF50' }}>
-                    {event.myScore} баллов
-                  </Text>
-                  <TouchableOpacity
-                    style={{ 
-                      backgroundColor: '#FF9800', 
-                      paddingHorizontal: 12, 
-                      paddingVertical: 6, 
-                      borderRadius: 8,
-                      marginTop: 6
-                    }}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleSendPhotos(event.id, event.name, event.date, event.location);
-                    }}
-                  >
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
-                      📷 Отправить фото
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            ))
           )}
+          <View style={styles.teacherFooterImage}>
+                      <Image
+                        source={require('../assets/images/logo2.png')}
+                        style={styles.teacherFooterImageStyle}
+                        resizeMode="contain"
+                      />
+          </View>
         </View>
-      )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 };
 

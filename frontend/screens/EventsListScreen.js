@@ -5,8 +5,11 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  StatusBar,
+  ImageBackground,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import styles from './styles';
 
 const API_URL = 'http://10.0.2.2:5000/api';
 
@@ -55,7 +58,7 @@ const EventsListScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.eventsLoadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
       </View>
     );
@@ -64,68 +67,74 @@ const EventsListScreen = ({ route, navigation }) => {
   const title = status === 'active' ? 'Текущие субботники' : 'Прошедшие субботники';
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      <View style={{ backgroundColor: '#fff', padding: 16, paddingTop: 20 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333' }}>{title}</Text>
-        <Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
-          Всего: {events.length}
-        </Text>
-      </View>
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+      <View style={styles.eventsContainer}>
+        {/* Кнопка назад */}
+        <TouchableOpacity 
+          style={styles.eventsBackButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.eventsBackButtonText}>← Назад</Text>
+        </TouchableOpacity>
 
-      <ScrollView style={{ flex: 1 }}>
-        <View style={{ padding: 16 }}>
-          {events.map((event) => (
-            <TouchableOpacity
-              key={event.id}
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 12,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 3,
-                elevation: 2,
-              }}
-              onPress={() => handleEventPress(event.id)}
-            >
-              <Text style={{ fontSize: 18, fontWeight: '600', color: '#333' }}>
-                {event.name}
-              </Text>
-              <Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
-                📅 {new Date(event.date).toLocaleDateString('ru-RU')}
-              </Text>
-              <Text style={{ fontSize: 14, color: '#666' }}>
-                📍 {event.location}
-              </Text>
-              {status === 'finished' && (
-                <View style={{ 
-                  backgroundColor: '#E8F5E9', 
-                  paddingHorizontal: 10, 
-                  paddingVertical: 4, 
-                  borderRadius: 8,
-                  marginTop: 8,
-                  alignSelf: 'flex-start'
-                }}>
-                  <Text style={{ color: '#2E7D32', fontSize: 12, fontWeight: '600' }}>
-                    ✓ Завершено
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-
-          {events.length === 0 && (
-            <Text style={{ textAlign: 'center', color: '#999', padding: 40 }}>
-              {status === 'active' 
-                ? 'Нет активных мероприятий' 
-                : 'Нет завершённых мероприятий'}
-            </Text>
-          )}
+        <View style={styles.eventsHeader}>
+          <Text style={styles.eventsTitle}>{title}</Text>
+          <Text style={styles.eventsSubtitle}>
+            Всего: {events.length}
+          </Text>
         </View>
-      </ScrollView>
-    </View>
+
+        <ScrollView style={styles.eventsScrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.eventsListContainer}>
+            {events.map((event) => (
+              <TouchableOpacity
+                key={event.id}
+                style={styles.eventsCard}
+                onPress={() => handleEventPress(event.id)}
+                activeOpacity={0.8}
+              >
+                <ImageBackground
+                  source={require('../assets/images/jj3.jpg')}
+                  style={styles.eventsCardBackground}
+                  imageStyle={{ opacity: 0.15 }}
+                  resizeMode="cover"
+                >
+                  <View style={styles.eventsCardContent}>
+                    <Text style={styles.eventsCardTitle}>{event.name}</Text>
+                    <View style={styles.eventsCardRow}>
+                      <Text style={styles.eventsCardIcon}>Дата:</Text>
+                      <Text style={styles.eventsCardText}>
+                        {new Date(event.date).toLocaleDateString('ru-RU')}
+                      </Text>
+                    </View>
+                    <View style={styles.eventsCardRow}>
+                      <Text style={styles.eventsCardIcon}>Место:</Text>
+                      <Text style={styles.eventsCardText}>{event.location}</Text>
+                    </View>
+                    {status === 'finished' && (
+                      <View style={styles.eventsFinishedBadge}>
+                        <Text style={styles.eventsFinishedText}>Завершено</Text>
+                      </View>
+                    )}
+                  </View>
+                </ImageBackground>
+              </TouchableOpacity>
+            ))}
+
+            {events.length === 0 && (
+              <View style={styles.eventsEmptyState}>
+                <Text style={styles.eventsEmptyText}>
+                  {status === 'active' 
+                    ? 'Нет активных мероприятий' 
+                    : 'Нет завершённых мероприятий'}
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </>
   );
 };
 

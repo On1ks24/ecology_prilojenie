@@ -6,14 +6,15 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  StatusBar,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './styles';
 
-const API_URL = 'http://10.0.2.2:5000/api'; // поменяй на свой URL
+const API_URL = 'http://10.0.2.2:5000/api';
 
 const SchoolAccountScreen = ({ route, navigation }) => {
-  // Получаем данные из авторизации
   const { userId, name, role, schoolId } = route.params || {};
 
   const [loading, setLoading] = useState(true);
@@ -33,8 +34,6 @@ const SchoolAccountScreen = ({ route, navigation }) => {
   const [showInviteLink, setShowInviteLink] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
 
-
-  // Загрузка всех данных при монтировании
   useEffect(() => {
     if (!schoolId) {
       Alert.alert('Ошибка', 'ID школы не найден');
@@ -52,12 +51,16 @@ const SchoolAccountScreen = ({ route, navigation }) => {
     }
   };
 
+  const getInitialLetter = () => {
+    if (!schoolData?.name) return 'Ш';
+    return schoolData.name.charAt(0).toUpperCase();
+  };
+
   const loadSchoolData = async () => {
     try {
       setLoading(true);
       const token = await getToken();
 
-      // Параллельно загружаем данные школы, статистику и учителей
       const [schoolRes, statsRes, teachersRes] = await Promise.all([
         fetch(`${API_URL}/schools/${schoolId}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -65,12 +68,11 @@ const SchoolAccountScreen = ({ route, navigation }) => {
         fetch(`${API_URL}/stats/school/${schoolId}`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${API_URL}/classes`, { // получаем все классы школы
+        fetch(`${API_URL}/classes`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
 
-      // Данные школы
       if (schoolRes.ok) {
         const school = await schoolRes.json();
         setSchoolData({
@@ -78,11 +80,9 @@ const SchoolAccountScreen = ({ route, navigation }) => {
           name: school.name,
           address: school.address || 'Адрес не указан',
           director: school.director || name || 'Не указан',
-          logo: school.logo || '🏫',
         });
       }
 
-      // Статистика школы
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(prev => ({
@@ -92,11 +92,10 @@ const SchoolAccountScreen = ({ route, navigation }) => {
         }));
       }
 
-      // Учителя школы (получаем через отдельный запрос к users)
       const teachersRes2 = await fetch(
-          `${API_URL}/users/school-teachers`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        `${API_URL}/users/school-teachers`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
       if (teachersRes2.ok) {
         const teachersData = await teachersRes2.json();
@@ -108,10 +107,6 @@ const SchoolAccountScreen = ({ route, navigation }) => {
         })));
       }
 
-      // Подсчёт учителей и учеников отдельно
-      
-
-      // Рейтинг школы (получаем общий рейтинг и ищем позицию)
       const ratingRes = await fetch(
         `${API_URL}/stats/schools-rating?limit=100`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -130,8 +125,9 @@ const SchoolAccountScreen = ({ route, navigation }) => {
           points: schoolPoints,
         });
       }
+
       const countsRes = await fetch(`${API_URL}/users/school-counts`, {
-      headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       }).catch(() => null);
       
       if (countsRes?.ok) {
@@ -150,41 +146,40 @@ const SchoolAccountScreen = ({ route, navigation }) => {
       setLoading(false);
     }
   };
-// Обработчики кликов:
-const handleViewTeachers = () => {
-  navigation.navigate('ManageUsers', { 
-    userRole: 'director',
-    userType: 'teachers',
-    schoolId
-  });
-};
 
-const handleViewStudents = () => {
-  navigation.navigate('ManageUsers', { 
-    userRole: 'director',
-    userType: 'students',
-    schoolId
-  });
-};
+  const handleViewTeachers = () => {
+    navigation.navigate('ManageUsers', { 
+      userRole: 'director',
+      userType: 'teachers',
+      schoolId
+    });
+  };
 
-const handleCreateInvite = () => {
-  navigation.navigate('GenerateInvite', { 
-    userId, 
-    role, 
-    schoolId, 
-    classId: route.params?.classId 
-  });
-};
+  const handleViewStudents = () => {
+    navigation.navigate('ManageUsers', { 
+      userRole: 'director',
+      userType: 'students',
+      schoolId
+    });
+  };
 
-  // Копирование ссылки
+  const handleViewSubbotniks = () => {
+    navigation.navigate('EventsList', { schoolId });
+  };
+
+  const handleCreateInvite = () => {
+    navigation.navigate('GenerateInvite', { 
+      userId, 
+      role, 
+      schoolId, 
+      classId: route.params?.classId 
+    });
+  };
+
   const handleCopyLink = () => {
-    // Для React Native используем Clipboard API
-    // import Clipboard from '@react-native-clipboard/clipboard';
-    // Clipboard.setString(inviteLink);
     Alert.alert('Ссылка скопирована', 'Пригласительная ссылка скопирована в буфер обмена');
   };
 
-  // Переход на рейтинг школ
   const handleViewUchenikRating = () => {
     navigation.navigate('RatingScreen', { type: 'school', schoolId, userId: route.params?.userId });
   };
@@ -193,33 +188,29 @@ const handleCreateInvite = () => {
     navigation.navigate('SchoolsRating');
   };
 
-  // Редактирование школы
   const handleEditSchool = () => {
     navigation.navigate('EditSchool', { schoolId, schoolData });
   };
 
-  // Просмотр профиля учителя
   const handleViewTeacher = (teacherId, teacherName) => {
     navigation.navigate('TeacherProfile', { teacherId, teacherName });
   };
 
-  // Все учителя
   const handleViewAllTeachers = () => {
     navigation.navigate('AllTeachers', { schoolId });
   };
 
   if (loading) {
     return (
-      <View style={[styles.schoolContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={styles.schoolLoadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={{ marginTop: 10 }}>Загрузка...</Text>
       </View>
     );
   }
 
   if (!schoolData) {
     return (
-      <View style={[styles.schoolContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={styles.schoolLoadingContainer}>
         <Text>Данные школы не найдены</Text>
         <TouchableOpacity onPress={loadSchoolData} style={{ marginTop: 20 }}>
           <Text style={{ color: '#4CAF50' }}>Обновить</Text>
@@ -229,141 +220,133 @@ const handleCreateInvite = () => {
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.schoolContainer}>
-        {/* Шапка школы */}
-        <View style={styles.schoolHeader}>
-          <View style={styles.schoolLogo}>
-            <Text style={styles.schoolLogoText}>{schoolData.logo}</Text>
-          </View>
-          <Text style={styles.schoolName}>{schoolData.name}</Text>
-          <Text style={styles.schoolAddress}>{schoolData.address}</Text>
-          <Text style={styles.schoolDirector}>Директор: {schoolData.director}</Text>
-        </View>
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.schoolScrollContainer}
+      >
+        <View style={styles.schoolContainer}>
+          <View style={styles.schoolHeader}>
+            <View style={styles.studentAvatar}>
+              <Image
+                source={require('../assets/images/fon9.png')}
+                style={styles.studentAvatarImage}
+                resizeMode="cover"
+              />
+            </View>
+            <Text style={styles.studentName}>{schoolData.name}</Text>
+            <Text style={styles.studentRole2}>{schoolData.address}</Text>
+            <Text style={styles.studentRole}>Директор: {schoolData.director}</Text>
 
-        {/* Статистика */}
-        <View style={styles.schoolStatsGrid}>
-            <TouchableOpacity 
-              style={styles.schoolStatCard}
-              onPress={handleViewTeachers}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.schoolStatIcon}>👩‍🏫</Text>
-              <Text style={styles.schoolStatValue}>{stats.teachersCount}</Text>
-              <Text style={styles.schoolStatLabel}>Учителей</Text>
+            <View style={styles.schoolStatsRow}>
+              <TouchableOpacity style={styles.schoolStatButton} onPress={handleViewTeachers}>
+                <Text style={styles.schoolStatButtonValue}>{stats.teachersCount}</Text>
+                <Text style={styles.schoolStatButtonLabel}>учителей</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.schoolStatButton} onPress={handleViewStudents}>
+                <Text style={styles.schoolStatButtonValue}>{stats.studentsCount}</Text>
+                <Text style={styles.schoolStatButtonLabel}>учеников</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.schoolStatButton} onPress={handleViewSubbotniks}>
+                <Text style={styles.schoolStatButtonValue}>{stats.subbotniksCount}</Text>
+                <Text style={styles.schoolStatButtonLabel}>субботников</Text>
+              </TouchableOpacity>
+
+              <View style={styles.schoolStatButton}>
+                <Text style={styles.schoolStatButtonValue}>{stats.totalPoints}</Text>
+                <Text style={styles.schoolStatButtonLabel}>всего баллов</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Рейтинг */}
+          <View style={styles.schoolRatingCard}>
+            <View style={styles.schoolRatingInfo}>
+              <Text style={styles.schoolRatingTitle}>Рейтинг среди школ</Text>
+              <Text style={styles.schoolRatingValue}>{rating.position} место</Text>
+              <Text style={styles.schoolRatingPosition}>
+                из {rating.totalSchools} школ • {rating.points} баллов
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.schoolRatingButton} onPress={handleViewSchoolRating}>
+              <Text style={styles.schoolRatingButtonText}>Подробнее →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Кнопки действий */}
+          <View style={styles.schoolActionsContainer}>
+            <TouchableOpacity style={styles.schoolActionCard} onPress={handleCreateInvite}>
+              <View style={styles.schoolActionContent}>
+                <Text style={styles.schoolActionTitle}>Пригласить учителей</Text>
+                <Text style={styles.schoolActionDescription}>Сгенерировать код для регистрации учителей</Text>
+              </View>
+              <Text style={styles.schoolActionArrow}>→</Text>
             </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.schoolStatCard}
-            onPress={handleViewStudents}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.schoolStatIcon}>🧑‍🎓</Text>
-            <Text style={styles.schoolStatValue}>{stats.studentsCount}</Text>
-            <Text style={styles.schoolStatLabel}>Учеников</Text>
-          </TouchableOpacity>
-
-          <View style={styles.schoolStatCard}>
-            <Text style={styles.schoolStatIcon}>🌍</Text>
-            <Text style={styles.schoolStatValue}>{stats.subbotniksCount}</Text>
-            <Text style={styles.schoolStatLabel}>Субботников</Text>
-          </View>
-
-          <View style={styles.schoolStatCard}>
-            <Text style={styles.schoolStatIcon}>⭐</Text>
-            <Text style={styles.schoolStatValue}>{stats.totalPoints}</Text>
-            <Text style={styles.schoolStatLabel}>Всего баллов</Text>
-          </View>
-        </View>
-
-        {/* Рейтинг */}
-        <View style={styles.ratingContainer}>
-          <View style={styles.ratingInfo}>
-            <Text style={styles.ratingTitle}>Рейтинг среди школ</Text>
-            <Text style={styles.ratingValue}>{rating.position} место</Text>
-            <Text style={styles.ratingPosition}>
-              из {rating.totalSchools} школ • {rating.points} баллов
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.ratingButton} onPress={handleViewSchoolRating}>
-            <Text style={styles.ratingButtonText}>Подробнее</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Действия */}
-        <View style={styles.schoolActionsContainer}>
-          <TouchableOpacity style={styles.schoolActionCard} onPress={handleCreateInvite}>
-            <Text style={styles.schoolActionIcon}>🔗</Text>
-            <View style={styles.schoolActionContent}>
-              <Text style={styles.schoolActionTitle}>
-                {role === 'director' ? 'Пригласить учителей' : 'Пригласить учеников'}
-              </Text>
-              <Text style={styles.schoolActionDescription}>
-                {role === 'director' 
-                  ? 'Сгенерировать код для регистрации учителей' 
-                  : 'Сгенерировать код для регистрации учеников в класс'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          {showInviteLink && (
-            <View style={styles.inviteLinkBox}>
-              <Text style={styles.inviteLinkText} numberOfLines={1}>
-                {inviteLink}
-              </Text>
-              <TouchableOpacity style={styles.copyButton} onPress={handleCopyLink}>
-                <Text style={styles.copyButtonText}>Копировать</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <TouchableOpacity style={styles.schoolActionCard} onPress={handleViewUchenikRating}>
-            <Text style={styles.schoolActionIcon}>🏆</Text>
-            <View style={styles.schoolActionContent}>
-              <Text style={styles.schoolActionTitle}>Посмотреть рейтинг учеников</Text>
-              <Text style={styles.schoolActionDescription}>Сравните учеников</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.schoolActionCard} onPress={handleEditSchool}>
-            <Text style={styles.schoolActionIcon}>⚙️</Text>
-            <View style={styles.schoolActionContent}>
-              <Text style={styles.schoolActionTitle}>Настройки школы</Text>
-              <Text style={styles.schoolActionDescription}>Редактировать информацию о школе</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Список учителей */}
-        <View style={styles.teachersList}>
-          <Text style={styles.sectionTitle}>Учителя школы</Text>
-          {teachers.length === 0 ? (
-            <Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>
-              Учителя не найдены
-            </Text>
-          ) : (
-            teachers.slice(0, 3).map((teacher) => (
-              <TouchableOpacity
-                key={teacher.id}
-                style={styles.teacherItem}
-                onPress={() => handleViewTeacher(teacher.id, teacher.name)}
-              >
-                <View style={styles.teacherInfo}>
-                  <Text style={styles.teacherName}>{teacher.name}</Text>
-                  <Text style={styles.teacherSubject}>{teacher.subject}</Text>
-                </View>
-                <Text style={styles.teacherClass}>{teacher.class}</Text>
-              </TouchableOpacity>
-            ))
-          )}
-          {teachers.length > 3 && (
-            <TouchableOpacity style={styles.viewAllButton} onPress={handleViewAllTeachers}>
-              <Text style={styles.viewAllText}>Все учителя →</Text>
+            <TouchableOpacity style={styles.schoolActionCard} onPress={handleViewUchenikRating}>
+              <View style={styles.schoolActionContent}>
+                <Text style={styles.schoolActionTitle}>Посмотреть рейтинг учеников</Text>
+                <Text style={styles.schoolActionDescription}>Сравните учеников</Text>
+              </View>
+              <Text style={styles.schoolActionArrow}>→</Text>
             </TouchableOpacity>
-          )}
+
+            <TouchableOpacity style={styles.schoolActionCard} onPress={handleEditSchool}>
+              <View style={styles.schoolActionContent}>
+                <Text style={styles.schoolActionTitle}>Настройки школы</Text>
+                <Text style={styles.schoolActionDescription}>Редактировать информацию о школе</Text>
+              </View>
+              <Text style={styles.schoolActionArrow}>→</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Список учителей */}
+          <View style={styles.schoolTeachersList}>
+            <View style={styles.schoolSectionHeader}>
+              <Text style={styles.schoolSectionTitle}>Учителя школы</Text>
+              <TouchableOpacity onPress={handleViewTeachers}>
+                <Text style={styles.schoolSectionLink}>все учителя →</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {teachers.length === 0 ? (
+              <View style={styles.schoolEmptyState}>
+                <Text style={styles.schoolEmptyText}>Учителя не найдены</Text>
+              </View>
+            ) : (
+              teachers.slice(0, 3).map((teacher) => (
+                <TouchableOpacity
+                  key={teacher.id}
+                  style={styles.schoolTeacherItem}
+                  onPress={() => handleViewTeacher(teacher.id, teacher.name)}
+                >
+                  <View style={styles.schoolTeacherInfo}>
+                    <Text style={styles.schoolTeacherName}>{teacher.name}</Text>
+                    <Text style={styles.schoolTeacherSubject}>{teacher.subject}</Text>
+                  </View>
+                  <Text style={styles.schoolTeacherClass}>{teacher.class}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+            {teachers.length > 3 && (
+              <TouchableOpacity style={styles.schoolViewAllButton} onPress={handleViewAllTeachers}>
+                <Text style={styles.schoolViewAllText}>Все учителя →</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.teacherFooterImage}>
+                                <Image
+                                  source={require('../assets/images/logo2.png')}
+                                  style={styles.teacherFooterImageStyle}
+                                  resizeMode="contain"
+                                />
+                    </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 };
 

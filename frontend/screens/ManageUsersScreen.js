@@ -1,4 +1,3 @@
-// screens/ManageUsersScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -112,143 +112,163 @@ const ManageUsersScreen = ({ route, navigation }) => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      {/* Шапка */}
-      <View style={{ backgroundColor: '#fff', padding: 16, paddingTop: 20 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 4 }}>
-          {title}
-        </Text>
-        <Text style={{ fontSize: 14, color: '#666' }}>
-          Всего: {users.length} • Активных: {activeCount} • Неактивных: {inactiveCount}
-        </Text>
-      </View>
-
-      {/* Вкладки */}
-      <View style={{ 
-        flexDirection: 'row', 
-        backgroundColor: '#fff', 
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-      }}>
-        <TouchableOpacity
-          onPress={() => setActiveTab('active')}
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+      <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+        
+        <TouchableOpacity 
           style={{
-            flex: 1,
-            paddingVertical: 10,
-            alignItems: 'center',
-            borderBottomWidth: 3,
-            borderBottomColor: activeTab === 'active' ? '#4CAF50' : 'transparent',
+            position: 'absolute',
+            top: 70,
+            left: 20,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 20,
+            zIndex: 10,
           }}
+          onPress={() => navigation.goBack()}
         >
-          <Text style={{ 
-            fontSize: 15, 
-            fontWeight: activeTab === 'active' ? '600' : '400',
-            color: activeTab === 'active' ? '#4CAF50' : '#666'
-          }}>
-            {activeTabLabel} ({activeCount})
-          </Text>
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>← Назад</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => setActiveTab('inactive')}
-          style={{
-            flex: 1,
-            paddingVertical: 10,
-            alignItems: 'center',
-            borderBottomWidth: 3,
-            borderBottomColor: activeTab === 'inactive' ? '#c62828' : 'transparent',
-          }}
-        >
-          <Text style={{ 
-            fontSize: 15, 
-            fontWeight: activeTab === 'inactive' ? '600' : '400',
-            color: activeTab === 'inactive' ? '#c62828' : '#666'
-          }}>
-            {inactiveTabLabel} ({inactiveCount})
+        
+        <View style={{ backgroundColor: '#fff', padding: 16, paddingTop: 80 }}>
+          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 4, marginTop: 40 }}>
+            {title}
           </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Список */}
-      <ScrollView style={{ flex: 1 }}>
-        <View style={{ padding: 16 }}>
-          {filteredUsers.length === 0 ? (
-            <View style={{ alignItems: 'center', marginTop: 60 }}>
-              <Text style={{ fontSize: 48, marginBottom: 16 }}>
-                {activeTab === 'active' ? '✅' : '⛔'}
-              </Text>
-              <Text style={{ fontSize: 16, color: '#999', textAlign: 'center' }}>
-                {activeTab === 'active' 
-                  ? `Нет ${isStudentsScreen ? 'активных учеников' : 'активных учителей'}`
-                  : `Нет ${isStudentsScreen ? 'неактивных учеников' : 'неактивных учителей'}`}
-              </Text>
-            </View>
-          ) : (
-            filteredUsers.map((user) => (
-              <View 
-                key={user.id}
-                style={{
-                  backgroundColor: '#fff',
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 12,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 3,
-                  elevation: 2,
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#333' }}>
-                    {user.name}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
-                    {user.email}
-                  </Text>
-                  {(user.className || user.Class?.name) && (
-                    <Text style={{ fontSize: 13, color: '#999', marginTop: 2 }}>
-                      Класс: {user.className || user.Class?.name}
-                    </Text>
-                  )}
-                  {(user.totalPoints !== undefined) && (
-                    <Text style={{ fontSize: 13, color: '#4CAF50', marginTop: 4 }}>
-                      {user.totalPoints} баллов
-                    </Text>
-                  )}
-                  {(user.studentsCount !== undefined) && (
-                    <Text style={{ fontSize: 13, color: '#4CAF50', marginTop: 4 }}>
-                      {user.studentsCount} учеников
-                    </Text>
-                  )}
-                </View>
-
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Switch
-                    value={user.is_active}
-                    onValueChange={() => toggleUserActive(user.id, user.is_active)}
-                    trackColor={{ false: '#ffebee', true: '#e8f5e9' }}
-                    thumbColor={user.is_active ? '#4CAF50' : '#c62828'}
-                  />
-                  <Text style={{ 
-                    fontSize: 11, 
-                    color: user.is_active ? '#4CAF50' : '#c62828',
-                    marginTop: 4 
-                  }}>
-                    {user.is_active ? 'Активен' : 'Неактивен'}
-                  </Text>
-                </View>
-              </View>
-            ))
-          )}
+          <Text style={{ fontSize: 14, color: '#666' }}>
+            Всего: {users.length} • Активных: {activeCount} • Неактивных: {inactiveCount}
+          </Text>
         </View>
-      </ScrollView>
-    </View>
+
+        {/* Вкладки */}
+        <View style={{ 
+          flexDirection: 'row', 
+          backgroundColor: '#fff', 
+          paddingHorizontal: 16,
+          paddingBottom: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: '#eee',
+        }}>
+          <TouchableOpacity
+            onPress={() => setActiveTab('active')}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              alignItems: 'center',
+              borderBottomWidth: 3,
+              borderBottomColor: activeTab === 'active' ? '#4CAF50' : 'transparent',
+            }}
+          >
+            <Text style={{ 
+              fontSize: 15, 
+              fontWeight: activeTab === 'active' ? '600' : '400',
+              color: activeTab === 'active' ? '#4CAF50' : '#666'
+            }}>
+              {activeTabLabel} ({activeCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveTab('inactive')}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              alignItems: 'center',
+              borderBottomWidth: 3,
+              borderBottomColor: activeTab === 'inactive' ? '#c62828' : 'transparent',
+            }}
+          >
+            <Text style={{ 
+              fontSize: 15, 
+              fontWeight: activeTab === 'inactive' ? '600' : '400',
+              color: activeTab === 'inactive' ? '#c62828' : '#666'
+            }}>
+              {inactiveTabLabel} ({inactiveCount})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Список */}
+        <ScrollView style={{ flex: 1 }}>
+          <View style={{ padding: 16 }}>
+            {filteredUsers.length === 0 ? (
+              <View style={{ alignItems: 'center', marginTop: 60 }}>
+                <Text style={{ fontSize: 48, marginBottom: 16 }}>
+                  {activeTab === 'active' ? '✅' : '⛔'}
+                </Text>
+                <Text style={{ fontSize: 16, color: '#999', textAlign: 'center' }}>
+                  {activeTab === 'active' 
+                    ? `Нет ${isStudentsScreen ? 'активных учеников' : 'активных учителей'}`
+                    : `Нет ${isStudentsScreen ? 'неактивных учеников' : 'неактивных учителей'}`}
+                </Text>
+              </View>
+            ) : (
+              filteredUsers.map((user) => (
+                <View 
+                  key={user.id}
+                  style={{
+                    backgroundColor: '#fff',
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    elevation: 2,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#333' }}>
+                      {user.name}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
+                      {user.email}
+                    </Text>
+                    {(user.className || user.Class?.name) && (
+                      <Text style={{ fontSize: 13, color: '#999', marginTop: 2 }}>
+                        Класс: {user.className || user.Class?.name}
+                      </Text>
+                    )}
+                    {(user.totalPoints !== undefined) && (
+                      <Text style={{ fontSize: 13, color: '#4CAF50', marginTop: 4 }}>
+                        {user.totalPoints} баллов
+                      </Text>
+                    )}
+                    {(user.studentsCount !== undefined) && (
+                      <Text style={{ fontSize: 13, color: '#4CAF50', marginTop: 4 }}>
+                        {user.studentsCount} учеников
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Switch
+                      value={user.is_active}
+                      onValueChange={() => toggleUserActive(user.id, user.is_active)}
+                      trackColor={{ false: '#ffebee', true: '#e8f5e9' }}
+                      thumbColor={user.is_active ? '#4CAF50' : '#c62828'}
+                    />
+                    <Text style={{ 
+                      fontSize: 11, 
+                      color: user.is_active ? '#4CAF50' : '#c62828',
+                      marginTop: 4 
+                    }}>
+                      {user.is_active ? 'Активен' : 'Неактивен'}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </>
   );
 };
 

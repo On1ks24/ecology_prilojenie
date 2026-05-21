@@ -9,7 +9,7 @@ import TeacherAccountScreen from './screens/TeacherAccountScreen';
 import SchoolAccountScreen from './screens/SchoolAccountScreen';
 import CleanSendingScreen from './screens/CleanSendingScreen';
 import CreateEventScreen from './screens/CreateEventScreen';
-import ProfileScreen from './screens/ProfileScreen';
+
 import GenerateInviteScreen from './screens/GenerateInviteScreen';
 import ManageUsersScreen from './screens/ManageUsersScreen';
 import RatingScreen from './screens/RatingScreen';
@@ -24,64 +24,60 @@ const Stack = createStackNavigator();
 const App = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Register">
+      <Stack.Navigator initialRouteName="Login">
         <Stack.Screen
           name="Register"
           component={RegisterScreen}
-          options={{ title: 'Регистрация' }}
+          options={{ headerShown: false }}
         />
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ title: 'Вход' }}
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen} 
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="UserAccount"
           component={UserAccountScreen}
-          options={{ title: 'Личный кабинет' }}
+          options={{headerShown: false}}
         />
         <Stack.Screen
           name="StudentAccount"
           component={StudentAccountScreen}
-          options={{ title: 'Ученик' }}
+          options={{headerShown: false}}
         />
         <Stack.Screen
           name="TeacherAccount"
           component={TeacherAccountScreen}
-          options={{ title: 'Учитель' }}
+          options={{headerShown: false}}
         />
         <Stack.Screen
           name="SchoolAccount"
           component={SchoolAccountScreen}
-          options={{ title: 'Директор' }}
+          options={{headerShown: false}}
         />
         <Stack.Screen
           name="CleanSending"
           component={CleanSendingScreen}
-          options={{ title: 'Отправка фотографий' }}
+          options={{headerShown: false}}
         />
 
         <Stack.Screen
           name="CreateEvent"
           component={CreateEventScreen}
-          options={{ title: 'Создание мероприятия' }}
+          options={{headerShown: false}}
         />
-        <Stack.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{ title: 'Профиль' }}
-        />
+
         <Stack.Screen 
           name="GenerateInvite" 
           component={GenerateInviteScreen}
-          options={{ title: 'Пригласительный код' }} 
+          options={{headerShown: false}} 
         />
-        <Stack.Screen name="ManageUsers" component={ManageUsersScreen} />
-        <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
-        <Stack.Screen name="RatingScreen" component={RatingScreen} />
-        <Stack.Screen name="EventsList" component={EventsListScreen} />
-        <Stack.Screen name="ReviewRequest" component={ReviewRequestScreen} />
-        <Stack.Screen name="SchoolsRating" component={SchoolsRatingScreen} />
+        <Stack.Screen name="ManageUsers" component={ManageUsersScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="EventDetails" component={EventDetailsScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="RatingScreen" component={RatingScreen} options={{headerShown: false}} />
+        <Stack.Screen name="EventsList" component={EventsListScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="ReviewRequest" component={ReviewRequestScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="SchoolsRating" component={SchoolsRatingScreen} options={{headerShown: false}}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

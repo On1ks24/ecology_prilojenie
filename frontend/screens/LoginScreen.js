@@ -7,10 +7,13 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './styles';
+import { StatusBar, Image } from 'react-native';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -30,7 +33,7 @@ const LoginScreen = ({ navigation }) => {
         email,
         password
       });
-      console.log('✅ Успешный ответ:', JSON.stringify(response.data, null, 2));
+      console.log('Успешный ответ:', JSON.stringify(response.data, null, 2));
       const { role, userId, name, schoolId, classId, isActive, message } = response.data;
 
       if (!isActive) {
@@ -64,7 +67,7 @@ const LoginScreen = ({ navigation }) => {
           navigation.navigate('UserAccount', { userId, name, role });
       }
     } catch (error) {
-      console.error('❌ Ошибка входа:', error);
+      console.error('Ошибка входа:', error);
       console.error('Ответ сервера с ошибкой:', error.response?.data);
       console.error('Статус:', error.response?.status);
 
@@ -87,58 +90,88 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Вход</Text>
-        <Text style={styles.subGreeting}>Добро пожаловать обратно!</Text>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="example@school.ru"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Пароль</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Введите пароль"
-            secureTextEntry
-          />
-        </View>
-
-        <TouchableOpacity onPress={handleForgotPassword}>
-          <Text style={styles.forgotPasswordText}>Забыли пароль?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleLogin}
-          disabled={isLoading}
+    
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <ScrollView
+          contentContainerStyle={styles.loginScrollContainer}
+          showsVerticalScrollIndicator={false}
         >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Войти</Text>
-          )}
-        </TouchableOpacity>
+          <View style={styles.loginBackgroundImageContainer}>
+              <Image 
+                source={require('../assets/images/fon5.png')} 
+                style={styles.loginBackgroundImage}
+                resizeMode="cover"
+              />
+            </View>
+        <View style={styles.loginContainer}>
+          
+          <View style={styles.loginHeader}>
+            <View style={styles.loginLogoContainer}>
+              <Image 
+                source={require('../assets/images/logo2.png')} 
+                style={styles.loginImage}
+                resizeMode="contain"
+              />
+            </View>
+            
+            
+            
+            <Text style={styles.loginTitle}>Добро пожаловать!</Text>
+            <Text style={styles.loginSubtitle}>Войдите в свой аккаунт</Text>
+          </View>
 
-        <View style={styles.registerLinkContainer}>
-          <Text style={styles.registerLinkText}>Нет аккаунта? </Text>
-          <TouchableOpacity onPress={handleRegisterPress}>
-            <Text style={styles.registerLinkButton}>Зарегистрироваться</Text>
-          </TouchableOpacity>
+          <View style={styles.loginForm}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="example@school.ru"
+                placeholderTextColor="#aaa"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Пароль</Text>
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Введите пароль"
+                placeholderTextColor="#aaa"
+                secureTextEntry
+              />
+            </View>
+
+
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginButtonText}>Войти</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.registerLinkContainer}>
+              <Text style={styles.registerLinkText}>Нет аккаунта?</Text>
+              <TouchableOpacity onPress={handleRegisterPress}>
+                <Text style={styles.registerLinkButton}> Зарегистрироваться</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </>
   );
 };
 

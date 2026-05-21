@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -119,6 +120,20 @@ const RatingScreen = ({ route, navigation }) => {
     }
   };
 
+  const getRankIcon = (index) => {
+    if (index === 0) return '🥇';
+    if (index === 1) return '🥈';
+    if (index === 2) return '🥉';
+    return `${index + 1}.`;
+  };
+
+  const getRankColor = (index) => {
+    if (index === 0) return '#FFD700';
+    if (index === 1) return '#C0C0C0';
+    if (index === 2) return '#CD7F32';
+    return '#666';
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -131,78 +146,95 @@ const RatingScreen = ({ route, navigation }) => {
   const subtitle = type === 'class' ? 'Топ учеников класса' : 'Топ учеников школы';
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      <View style={{ backgroundColor: '#fff', padding: 16, paddingTop: 20 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333' }}>{title}</Text>
-        <Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{subtitle}</Text>
-        {myRank && myRank > 0 && (
-          <Text style={{ fontSize: 14, color: '#4CAF50', marginTop: 4 }}>
-            Ваше место: {myRank} из {rating.length}
-          </Text>
-        )}
-      </View>
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+      <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+        
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            top: 70,
+            left: 20,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 20,
+            zIndex: 10,
+          }}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>← Назад</Text>
+        </TouchableOpacity>
 
-      <ScrollView style={{ flex: 1 }}>
-        <View style={{ padding: 16 }}>
-          {Array.isArray(rating) && rating.map((item, index) => (
-            <View 
-              key={item.userId || item.id || index}
-              style={[
-                {
-                  backgroundColor: '#fff',
-                  borderRadius: 12,
-                  padding: 14,
-                  marginBottom: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                },
-                (item.userId === userId || item.id === userId) && { 
-                  backgroundColor: '#E8F5E9',
-                  borderLeftWidth: 3,
-                  borderLeftColor: '#4CAF50'
-                },
-                index < 3 && { elevation: 2 }
-              ]}
-            >
-              <Text style={{ 
-                fontSize: 20, 
-                fontWeight: 'bold',
-                width: 40,
-                color: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#666'
-              }}>
-                {index === 0 && '🥇'}
-                {index === 1 && '🥈'}
-                {index === 2 && '🥉'}
-                {index > 2 && `${index + 1}.`}
-              </Text>
-              
-              <View style={{ flex: 1 }}>
-                <Text style={{ 
-                  fontSize: 16, 
-                  fontWeight: (item.userId === userId || item.id === userId) ? '600' : '400',
-                  color: (item.userId === userId || item.id === userId) ? '#2E7D32' : '#333'
-                }}>
-                  {item.name} {(item.userId === userId || item.id === userId) && '(Вы)'}
-                </Text>
-                {type === 'school' && item.classId && (
-                  <Text style={{ fontSize: 12, color: '#999' }}>Класс {item.classId}</Text>
-                )}
-              </View>
-              
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#4CAF50' }}>
-                {item.totalScore || item.score || 0}
-              </Text>
-            </View>
-          ))}
-
-          {(!rating || rating.length === 0) && (
-            <Text style={{ textAlign: 'center', color: '#999', padding: 40 }}>
-              Пока нет данных для рейтинга
+        <View style={{ backgroundColor: '#fff', padding: 16, paddingTop: 80 }}>
+          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#333', marginTop: 40 }}>{title}</Text>
+          <Text style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{subtitle}</Text>
+          {myRank && myRank > 0 && (
+            <Text style={{ fontSize: 14, color: '#4CAF50', marginTop: 4 }}>
+              Ваше место: {myRank} из {rating.length}
             </Text>
           )}
         </View>
-      </ScrollView>
-    </View>
+
+        <ScrollView style={{ flex: 1 }}>
+          <View style={{ padding: 16 }}>
+            {Array.isArray(rating) && rating.map((item, index) => (
+              <View 
+                key={item.userId || item.id || index}
+                style={[
+                  {
+                    backgroundColor: '#fff',
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  },
+                  (item.userId === userId || item.id === userId) && { 
+                    backgroundColor: '#E8F5E9',
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#4CAF50'
+                  },
+                  index < 3 && { elevation: 2 }
+                ]}
+              >
+                <Text style={{ 
+                  fontSize: 20, 
+                  fontWeight: 'bold',
+                  width: 40,
+                  color: getRankColor(index)
+                }}>
+                  {getRankIcon(index)}
+                </Text>
+                
+                <View style={{ flex: 1 }}>
+                  <Text style={{ 
+                    fontSize: 16, 
+                    fontWeight: (item.userId === userId || item.id === userId) ? '600' : '400',
+                    color: (item.userId === userId || item.id === userId) ? '#2E7D32' : '#333'
+                  }}>
+                    {item.name} {(item.userId === userId || item.id === userId) && '(Вы)'}
+                  </Text>
+                  {type === 'school' && item.classId && (
+                    <Text style={{ fontSize: 12, color: '#999' }}>Класс {item.classId}</Text>
+                  )}
+                </View>
+                
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#4CAF50' }}>
+                  {item.totalScore || item.score || 0}
+                </Text>
+              </View>
+            ))}
+
+            {(!rating || rating.length === 0) && (
+              <Text style={{ textAlign: 'center', color: '#999', padding: 40 }}>
+                Пока нет данных для рейтинга
+              </Text>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </>
   );
 };
 

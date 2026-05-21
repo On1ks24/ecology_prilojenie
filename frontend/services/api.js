@@ -75,6 +75,7 @@ const api = {
     
     return data;
   },
+  
 };
 
 export default api;

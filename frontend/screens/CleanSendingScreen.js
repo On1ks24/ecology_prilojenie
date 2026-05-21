@@ -7,6 +7,8 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  StatusBar,
+  ImageBackground,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './styles';
@@ -18,8 +20,8 @@ const AI_URL = 'http://10.0.2.2:5001';
 const CleanSendingScreen = ({ route, navigation }) => {
   const { eventId, eventName, eventDate, eventLocation } = route.params || {};
 
-  const [beforePhoto, setBeforePhoto] = useState(null);  // ← теперь объект
-  const [afterPhoto, setAfterPhoto] = useState(null);    // ← теперь объект
+  const [beforePhoto, setBeforePhoto] = useState(null);
+  const [afterPhoto, setAfterPhoto] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -63,7 +65,6 @@ const CleanSendingScreen = ({ route, navigation }) => {
     try {
       const token = await getToken();
       
-      // 1. Загружаем фото на сервер Node.js
       const formData = new FormData();
       formData.append('before', {
         uri: beforePhoto.uri,
@@ -92,7 +93,6 @@ const CleanSendingScreen = ({ route, navigation }) => {
 
       const uploadData = await uploadRes.json();
 
-      // 2. Отправляем в нейросеть
       const aiFormData = new FormData();
       aiFormData.append('before', {
         uri: beforePhoto.uri,
@@ -115,7 +115,6 @@ const CleanSendingScreen = ({ route, navigation }) => {
         aiScore = await aiRes.json();
       }
 
-      // 3. Обновляем в БД
       await fetch(`${API_URL}/checks/${uploadData.requestId}/evaluate`, {
         method: 'PUT',
         headers: {
@@ -151,126 +150,179 @@ const CleanSendingScreen = ({ route, navigation }) => {
 
   if (isSubmitted) {
     return (
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.subbotnikContainer}>
-          <View style={styles.subbotnikHeader}>
-            <Text style={styles.subbotnikTitle}>{eventName || 'Субботник'}</Text>
-            <Text style={styles.subbotnikDate}>{eventDate}</Text>
-            <Text style={styles.subbotnikLocation}>{eventLocation}</Text>
-          </View>
-
-          <View style={styles.successContainer}>
-            <Text style={styles.successText}>✅ Отправлено на проверку!</Text>
-            {aiResult && (
-              <View style={{ marginTop: 10, alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, color: '#4CAF50' }}>
-                  AI оценка: {aiResult.score}/5
-                </Text>
-                <Text style={{ fontSize: 14, color: '#666' }}>
-                  Убрано: {aiResult.percentage_cleaned}%
-                </Text>
-              </View>
-            )}
-            <Text style={[styles.instructionText, { marginTop: 10 }]}>
-              Учитель проверит и начислит баллы
-            </Text>
-          </View>
-
-          <TouchableOpacity style={styles.submitButton} onPress={handleReset}>
-            <Text style={styles.submitButtonText}>Отправить ещё</Text>
-          </TouchableOpacity>
-          
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
           <TouchableOpacity 
-            style={[styles.submitButton, { backgroundColor: '#666', marginTop: 10 }]} 
+            style={{
+              position: 'absolute',
+              top: 70,
+              left: 20,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 20,
+              zIndex: 10,
+            }}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.submitButtonText}>Назад</Text>
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>← Назад</Text>
           </TouchableOpacity>
+
+          <ScrollView contentContainerStyle={[styles.scrollContainer, { paddingTop: 80 }]}>
+            <View style={styles.subbotnikContainer}>
+              {/* Шапка с фоновым изображением */}
+              <ImageBackground
+                source={require('../assets/images/fon3.png')}
+                style={styles.cleanEventHeaderBackground}
+                imageStyle={{ opacity: 0.3 }}
+                resizeMode="cover"
+              >
+                <View style={styles.cleanEventInfoCard}>
+                  <Text style={styles.cleanEventTitle}>{eventName || 'Субботник'}</Text>
+                  <Text style={styles.cleanEventDate}>{eventDate}</Text>
+                  <Text style={styles.cleanEventLocation}>{eventLocation}</Text>
+                </View>
+              </ImageBackground>
+
+              <View style={styles.successContainer}>
+                <Text style={styles.successText}>✅ Отправлено на проверку!</Text>
+                {aiResult && (
+                  <View style={{ marginTop: 10, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 16, color: '#4CAF50' }}>
+                      AI оценка: {aiResult.score}/5
+                    </Text>
+                    <Text style={{ fontSize: 14, color: '#666' }}>
+                      Убрано: {aiResult.percentage_cleaned}%
+                    </Text>
+                  </View>
+                )}
+                <Text style={[styles.instructionText, { marginTop: 10 }]}>
+                  Учитель проверит и начислит баллы
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.submitButton} onPress={handleReset}>
+                <Text style={styles.submitButtonText}>Отправить ещё</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
-      </ScrollView>
+      </>
     );
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.subbotnikContainer}>
-        <View style={styles.subbotnikHeader}>
-          <Text style={styles.subbotnikTitle}>{eventName || 'Субботник'}</Text>
-          <Text style={styles.subbotnikDate}>{eventDate}</Text>
-          <Text style={styles.subbotnikLocation}>{eventLocation}</Text>
-        </View>
-
-        {/* Фото ДО */}
-        <View style={styles.photoSection}>
-          <Text style={styles.photoTitle}>Фото ДО уборки</Text>
-          <Text style={styles.photoSubtitle}>Сфотографируйте место до начала уборки</Text>
-          
-          <View style={styles.photoContainer}>
-            {beforePhoto ? (
-              <Image source={{ uri: beforePhoto.uri }} style={styles.photoImage} />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Text style={styles.photoPlaceholderIcon}>📸</Text>
-                <Text style={styles.photoPlaceholderText}>Фото не добавлено</Text>
-              </View>
-            )}
-          </View>
-          
-          <TouchableOpacity
-            style={[styles.photoButton, beforePhoto && styles.photoButtonDisabled]}
-            onPress={() => handleTakePhoto('before')}
-            disabled={!!beforePhoto}
-          >
-            <Text style={styles.photoButtonText}>
-              {beforePhoto ? '✓ Добавлено' : '📷 Сделать фото'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Фото ПОСЛЕ */}
-        <View style={styles.photoSection}>
-          <Text style={styles.photoTitle}>Фото ПОСЛЕ уборки</Text>
-          <Text style={styles.photoSubtitle}>Сфотографируйте результат после уборки</Text>
-          
-          <View style={styles.photoContainer}>
-            {afterPhoto ? (
-              <Image source={{ uri: afterPhoto.uri }} style={styles.photoImage} />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Text style={styles.photoPlaceholderIcon}>📸</Text>
-                <Text style={styles.photoPlaceholderText}>Фото не добавлено</Text>
-              </View>
-            )}
-          </View>
-          
-          <TouchableOpacity
-            style={[styles.photoButton, afterPhoto && styles.photoButtonDisabled]}
-            onPress={() => handleTakePhoto('after')}
-            disabled={!!afterPhoto}
-          >
-            <Text style={styles.photoButtonText}>
-              {afterPhoto ? '✓ Добавлено' : '📷 Сделать фото'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.submitButton, (!beforePhoto || !afterPhoto || isSubmitting) && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={!beforePhoto || !afterPhoto || isSubmitting}
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+      <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+        {/* Кнопка назад */}
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            top: 70,
+            left: 20,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 20,
+            zIndex: 10,
+          }}
+          onPress={() => navigation.goBack()}
         >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.submitButtonText}>Отправить на проверку</Text>
-          )}
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>← Назад</Text>
         </TouchableOpacity>
 
-        <Text style={styles.instructionText}>
-          * Фото пройдут AI-оценку и проверку учителя
-        </Text>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={[styles.scrollContainer, { paddingTop: 80 }]}
+        >
+          <View style={styles.subbotnikContainer}>
+            {/* Шапка с фоновым изображением */}
+            <ImageBackground
+              source={require('../assets/images/jj4.jpg')}
+              style={styles.cleanEventHeaderBackground}
+              imageStyle={{ opacity: 0.3 }}
+              resizeMode="cover"
+            >
+              <View style={styles.cleanEventInfoCard}>
+                <Text style={styles.cleanEventTitle}>{eventName || 'Субботник'}</Text>
+                <Text style={styles.cleanEventDate}>{eventDate}</Text>
+                <Text style={styles.cleanEventLocation}>{eventLocation}</Text>
+              </View>
+            </ImageBackground>
+
+            {/* Фото ДО */}
+            <View style={styles.photoSection}>
+              <Text style={styles.photoTitle}>Фото ДО уборки</Text>
+              <Text style={styles.photoSubtitle}>Сфотографируйте место до начала уборки</Text>
+              
+              <View style={styles.photoContainer}>
+                {beforePhoto ? (
+                  <Image source={{ uri: beforePhoto.uri }} style={styles.photoImage} />
+                ) : (
+                  <View style={styles.photoPlaceholder}>
+                    <Text style={styles.photoPlaceholderText}>Фото не добавлено</Text>
+                  </View>
+                )}
+              </View>
+              
+              <TouchableOpacity
+                style={[styles.photoButton, beforePhoto && styles.photoButtonDisabled]}
+                onPress={() => handleTakePhoto('before')}
+                disabled={!!beforePhoto}
+              >
+                <Text style={styles.photoButtonText}>
+                  {beforePhoto ? '✓ Добавлено' : 'Сделать фото'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Фото ПОСЛЕ */}
+            <View style={styles.photoSection}>
+              <Text style={styles.photoTitle}>Фото ПОСЛЕ уборки</Text>
+              <Text style={styles.photoSubtitle}>Сфотографируйте результат после уборки</Text>
+              
+              <View style={styles.photoContainer}>
+                {afterPhoto ? (
+                  <Image source={{ uri: afterPhoto.uri }} style={styles.photoImage} />
+                ) : (
+                  <View style={styles.photoPlaceholder}>
+                    <Text style={styles.photoPlaceholderText}>Фото не добавлено</Text>
+                  </View>
+                )}
+              </View>
+              
+              <TouchableOpacity
+                style={[styles.photoButton, afterPhoto && styles.photoButtonDisabled]}
+                onPress={() => handleTakePhoto('after')}
+                disabled={!!afterPhoto}
+              >
+                <Text style={styles.photoButtonText}>
+                  {afterPhoto ? '✓ Добавлено' : 'Сделать фото'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.submitButton, (!beforePhoto || !afterPhoto || isSubmitting) && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={!beforePhoto || !afterPhoto || isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitButtonText}>Отправить на проверку</Text>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.instructionText}>
+              * Фото пройдут AI-оценку и проверку учителя
+            </Text>
+          </View>
+        </ScrollView>
       </View>
-    </ScrollView>
+    </>
   );
 };
 

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './styles';
@@ -56,7 +57,6 @@ const CreateEventScreen = ({ route, navigation }) => {
       setIsCreating(true);
       const token = await getToken();
 
-      // Парсим дату (ожидаем формат ДД.ММ.ГГГГ или ГГГГ-ММ-ДД)
       let parsedDate;
       if (eventData.date.includes('.')) {
         const [day, month, year] = eventData.date.split('.');
@@ -103,81 +103,106 @@ const CreateEventScreen = ({ route, navigation }) => {
   const isFormFilled = eventData.name && eventData.date && eventData.location;
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.createEventContainer}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' }}>
-          Создать субботник
-        </Text>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.requiredLabel}>
-            Название мероприятия <Text style={styles.requiredStar}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={eventData.name}
-            onChangeText={(text) => handleInputChange('name', text)}
-            placeholder="Например: Весенний субботник"
-            maxLength={100}
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.requiredLabel}>
-            Дата проведения <Text style={styles.requiredStar}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={eventData.date}
-            onChangeText={(text) => handleInputChange('date', text)}
-            placeholder="2026-03-25 или 25.03.2026"
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.requiredLabel}>
-            Место проведения <Text style={styles.requiredStar}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={eventData.location}
-            onChangeText={(text) => handleInputChange('location', text)}
-            placeholder="Школьный парк, актовый зал..."
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.requiredLabel}>Описание</Text>
-          <TextInput
-            style={styles.inputMultiline}
-            value={eventData.description}
-            onChangeText={(text) => handleInputChange('description', text)}
-            placeholder="Опишите суть мероприятия..."
-            multiline
-            numberOfLines={4}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.generateButton,
-            (!isFormFilled || isCreating) && styles.generateButtonDisabled
-          ]}
-          onPress={handleCreateEvent}
-          disabled={!isFormFilled || isCreating}
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" translucent />
+      <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+        {/* Кнопка назад */}
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            top: 50,
+            left: 20,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 20,
+            zIndex: 10,
+          }}
+          onPress={() => navigation.goBack()}
         >
-          {isCreating ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.generateButtonText}>Создать мероприятие</Text>
-          )}
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>← Назад</Text>
         </TouchableOpacity>
 
-        <Text style={styles.subtext}>
-          * После создания все ученики школы автоматически станут участниками
-        </Text>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={[styles.scrollContainer, { paddingTop: 80 }]}
+        >
+          <View style={styles.createEventContainer}>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' }}>
+              Создать субботник
+            </Text>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.requiredLabel}>
+                Название мероприятия <Text style={styles.requiredStar}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={eventData.name}
+                onChangeText={(text) => handleInputChange('name', text)}
+                placeholder="Например: Весенний субботник"
+                maxLength={100}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.requiredLabel}>
+                Дата проведения <Text style={styles.requiredStar}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={eventData.date}
+                onChangeText={(text) => handleInputChange('date', text)}
+                placeholder="2026-03-25 или 25.03.2026"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.requiredLabel}>
+                Место проведения <Text style={styles.requiredStar}>*</Text>
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={eventData.location}
+                onChangeText={(text) => handleInputChange('location', text)}
+                placeholder="Школьный парк, актовый зал..."
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.requiredLabel}>Описание</Text>
+              <TextInput
+                style={styles.inputMultiline}
+                value={eventData.description}
+                onChangeText={(text) => handleInputChange('description', text)}
+                placeholder="Опишите суть мероприятия..."
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.generateButton,
+                (!isFormFilled || isCreating) && styles.generateButtonDisabled
+              ]}
+              onPress={handleCreateEvent}
+              disabled={!isFormFilled || isCreating}
+            >
+              {isCreating ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.generateButtonText}>Создать мероприятие</Text>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.subtext}>
+              * После создания все ученики школы автоматически станут участниками
+            </Text>
+          </View>
+        </ScrollView>
       </View>
-    </ScrollView>
+    </>
   );
 };
 
