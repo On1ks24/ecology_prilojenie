@@ -25,9 +25,7 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('Ошибка', 'Пожалуйста, заполните email и пароль');
       return;
     }
-
     setIsLoading(true);
-
     try {
       const response = await axios.post('http://10.0.2.2:5000/api/auth/login', {
         email,
@@ -35,12 +33,10 @@ const LoginScreen = ({ navigation }) => {
       });
       console.log('Успешный ответ:', JSON.stringify(response.data, null, 2));
       const { role, userId, name, schoolId, classId, isActive, message } = response.data;
-
       if (!isActive) {
         Alert.alert('Внимание', message || 'Ваш аккаунт не активирован');
         return;
       }
-
       const { accessToken, refreshToken } = response.data;
       if (accessToken) {
         await AsyncStorage.setItem('accessToken', accessToken);
@@ -49,7 +45,6 @@ const LoginScreen = ({ navigation }) => {
       if (refreshToken) {
         await AsyncStorage.setItem('refreshToken', refreshToken);
       }
-
       switch (role) {
         case 'user':
           navigation.navigate('UserAccount', { userId, name, role });

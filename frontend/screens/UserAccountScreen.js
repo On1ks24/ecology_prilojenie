@@ -133,6 +133,34 @@ const UserAccountScreen = ({ route, navigation }) => {
     });
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Выход из аккаунта',
+      'Вы уверены, что хотите выйти?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Выйти',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('accessToken');
+              await AsyncStorage.removeItem('refreshToken');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Ошибка при выходе:', error);
+              Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.userLoadingContainer}>
@@ -287,12 +315,19 @@ const UserAccountScreen = ({ route, navigation }) => {
               )}
             </View>
           )}
+          <TouchableOpacity 
+              style={styles.logoutButton3} 
+              onPress={handleLogout}
+              activeOpacity={0.1}
+            >
+              <Text style={styles.logoutButtonText3}>Выйти из аккаунта</Text>
+          </TouchableOpacity>
           <View style={styles.teacherFooterImage}>
-                      <Image
-                        source={require('../assets/images/logo2.png')}
-                        style={styles.teacherFooterImageStyle}
-                        resizeMode="contain"
-                      />
+            <Image
+              source={require('../assets/images/logo2.png')}
+              style={styles.teacherFooterImageStyle}
+              resizeMode="contain"
+            />
           </View>
         </View>
       </ScrollView>

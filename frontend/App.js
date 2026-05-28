@@ -25,53 +25,15 @@ const App = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen
-          name="Register"
-          component={RegisterScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Login" 
-          component={LoginScreen} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="UserAccount"
-          component={UserAccountScreen}
-          options={{headerShown: false}}
-        />
-        <Stack.Screen
-          name="StudentAccount"
-          component={StudentAccountScreen}
-          options={{headerShown: false}}
-        />
-        <Stack.Screen
-          name="TeacherAccount"
-          component={TeacherAccountScreen}
-          options={{headerShown: false}}
-        />
-        <Stack.Screen
-          name="SchoolAccount"
-          component={SchoolAccountScreen}
-          options={{headerShown: false}}
-        />
-        <Stack.Screen
-          name="CleanSending"
-          component={CleanSendingScreen}
-          options={{headerShown: false}}
-        />
-
-        <Stack.Screen
-          name="CreateEvent"
-          component={CreateEventScreen}
-          options={{headerShown: false}}
-        />
-
-        <Stack.Screen 
-          name="GenerateInvite" 
-          component={GenerateInviteScreen}
-          options={{headerShown: false}} 
-        />
+        <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="UserAccount" component={UserAccountScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="StudentAccount" component={StudentAccountScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="TeacherAccount" component={TeacherAccountScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="SchoolAccount" component={SchoolAccountScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="CleanSending" component={CleanSendingScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="CreateEvent" component={CreateEventScreen} options={{headerShown: false}}/>
+        <Stack.Screen name="GenerateInvite" component={GenerateInviteScreen} options={{headerShown: false}}/>
         <Stack.Screen name="ManageUsers" component={ManageUsersScreen} options={{headerShown: false}}/>
         <Stack.Screen name="EventDetails" component={EventDetailsScreen} options={{headerShown: false}}/>
         <Stack.Screen name="RatingScreen" component={RatingScreen} options={{headerShown: false}} />

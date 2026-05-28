@@ -160,6 +160,34 @@ const StudentDashboardScreen = ({ route, navigation }) => {
     navigation.navigate('EventsList', { status: 'finished', schoolId });
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Выход из аккаунта',
+      'Вы уверены, что хотите выйти?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Выйти',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('accessToken');
+              await AsyncStorage.removeItem('refreshToken');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }], // или 'Auth', 'Welcome' — имя твоего экрана входа
+              });
+            } catch (error) {
+              console.error('Ошибка при выходе:', error);
+              Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.studentLoadingContainer}>
@@ -193,7 +221,7 @@ const StudentDashboardScreen = ({ route, navigation }) => {
                 <Text style={styles.studentStatButtonValue}>{stats.points}</Text>
                 <Text style={styles.studentStatButtonLabel}>эко-баллов</Text>
               </View>
-
+            
               <TouchableOpacity style={styles.studentStatButton} onPress={handleClassRating}>
                 <Text style={styles.studentStatButtonValue}>{stats.classRank}/{stats.classTotal}</Text>
                 <Text style={styles.studentStatButtonLabel}>место в классе</Text>
@@ -275,6 +303,13 @@ const StudentDashboardScreen = ({ route, navigation }) => {
               </View>
               
             ))}
+            <TouchableOpacity 
+                style={styles.logoutButton} 
+                onPress={handleLogout}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+            </TouchableOpacity>
             <View style={styles.studentFooterImage}>
                   <Image
                     source={require('../assets/images/uchenik2.png')}

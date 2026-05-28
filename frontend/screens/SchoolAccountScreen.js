@@ -200,6 +200,34 @@ const SchoolAccountScreen = ({ route, navigation }) => {
     navigation.navigate('AllTeachers', { schoolId });
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Выход из аккаунта',
+      'Вы уверены, что хотите выйти?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Выйти',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('accessToken');
+              await AsyncStorage.removeItem('refreshToken');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Ошибка при выходе:', error);
+              Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.schoolLoadingContainer}>
@@ -293,14 +321,6 @@ const SchoolAccountScreen = ({ route, navigation }) => {
               </View>
               <Text style={styles.schoolActionArrow}>→</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.schoolActionCard} onPress={handleEditSchool}>
-              <View style={styles.schoolActionContent}>
-                <Text style={styles.schoolActionTitle}>Настройки школы</Text>
-                <Text style={styles.schoolActionDescription}>Редактировать информацию о школе</Text>
-              </View>
-              <Text style={styles.schoolActionArrow}>→</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Список учителей */}
@@ -337,13 +357,20 @@ const SchoolAccountScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
           </View>
+          <TouchableOpacity 
+              style={styles.logoutButton3} 
+              onPress={handleLogout}
+              activeOpacity={0.1}
+            >
+              <Text style={styles.logoutButtonText3}>Выйти из аккаунта</Text>
+          </TouchableOpacity>
           <View style={styles.teacherFooterImage}>
-                                <Image
-                                  source={require('../assets/images/logo2.png')}
-                                  style={styles.teacherFooterImageStyle}
-                                  resizeMode="contain"
-                                />
-                    </View>
+            <Image
+              source={require('../assets/images/logo2.png')}
+              style={styles.teacherFooterImageStyle}
+              resizeMode="contain"
+            />
+          </View>
         </View>
       </ScrollView>
     </>

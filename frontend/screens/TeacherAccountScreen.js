@@ -245,6 +245,34 @@ const TeacherDashboardScreen = ({ route, navigation }) => {
     );
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Выход из аккаунта',
+      'Вы уверены, что хотите выйти?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Выйти',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('accessToken');
+              await AsyncStorage.removeItem('refreshToken');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Ошибка при выходе:', error);
+              Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const handleActiveEventPress = (eventId) => {
     navigation.navigate('EventDetails', { eventId, userRole: 'teacher', userId });
   };
@@ -391,9 +419,18 @@ const TeacherDashboardScreen = ({ route, navigation }) => {
                 <Text style={styles.teacherEmptyText}>Нет завершённых субботников</Text>
               </View>
             )}
+            
           </View>
 
           
+        </View>
+        <TouchableOpacity 
+              style={styles.logoutButton2} 
+              onPress={handleLogout}
+              activeOpacity={0.1}
+            >
+              <Text style={styles.logoutButtonText2}>Выйти из аккаунта</Text>
+          </TouchableOpacity>
           <View style={styles.teacherFooterImage}>
             <Image
               source={require('../assets/images/logo2.png')}
@@ -401,7 +438,6 @@ const TeacherDashboardScreen = ({ route, navigation }) => {
               resizeMode="contain"
             />
           </View>
-        </View>
       </ScrollView>
     </>
   );
